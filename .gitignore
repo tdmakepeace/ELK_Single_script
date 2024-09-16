@@ -117,4 +117,6 @@ log/*
 
 # backups
 *.bak
+*.tmp
+
 
