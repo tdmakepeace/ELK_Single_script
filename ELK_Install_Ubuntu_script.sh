@@ -14,8 +14,7 @@ base()
 		sudo mkdir pensandotools
 		sudo chown $real_user:$real_user pensandotools
 		sudo chmod 777 pensandotools
-		mkdir -p /pensandotools/elk
-		mkdir -p /pensandotools/elk/elastiflow
+		mkdir -p /pensandotools/
 		mkdir -p /pensandotools/scripts
 		sudo mkdir -p /etc/apt/keyrings
 
@@ -26,7 +25,8 @@ base()
 		sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 		sudo apt-get update
 		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes
-		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv --yes
+#		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv --yes
+		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes
 
 		sudo usermod -aG docker $real_user
 		
@@ -46,9 +46,9 @@ elk()
 
 		sleep 10
 		
-		cd /pensandotools/elk
+		cd /pensandotools/
 		git clone https://github.com/amd/pensando-elk.git
-		cd /pensandotools/elk/pensando-elk
+		cd /pensandotools/pensando-elk
 		`git branch --all | cut -d "/" -f3 > gitversion.txt`
 				echo "choose a branch "
 						  git branch --all | cut -d "/" -f3 |grep -n ''
@@ -74,10 +74,9 @@ This is going to take time to install and setup
 					
 					
 					
-					
 					"
 					
-		cd /pensandotools/elk/pensando-elk/
+		cd /pensandotools/pensando-elk/
 		echo "TAG=8.13.4" >.env
 		mkdir -p data/es_backups
 		mkdir -p data/pensando_es
@@ -90,6 +89,13 @@ This is going to take time to install and setup
 		sleep 10 
 				
 		docker compose up --detach
+		
+		echo "					
+		
+Services setting up please wait
+
+					"
+		
 		sleep 60
 		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
 		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_snapshot/my_fs_backup' -d @./elasticsearch/pensando_fs.json
@@ -97,6 +103,11 @@ This is going to take time to install and setup
 		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando' -d @./elasticsearch/pensando_ilm.json
 		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/elastiflow' -d @./elasticsearch/elastiflow_slm.json
 		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/elastiflow' -d @./elasticsearch/elastiflow_ilm.json
+		echo "					
+Services setting up please wait
+50%
+					"
+							
 		sleep 60
 		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@./kibana/pensando-dss-syslog-10.14.0001.ndjson
 		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@./kibana/kibana-8.2.x-flow-codex.ndjson 
@@ -122,6 +133,62 @@ Services setting up please wait
 
 }
 
+
+tools()
+	{
+		##### install other tools. ######
+
+cd /pensandotools/
+git clone https://gitlab.com/pensando/tbd/utilities/pentools.git
+git clone https://gitlab+deploy-token-bigred:MPEzmdZ5-u_u7LuETBqt@gitlab.com/tdmakepeace/Bigredbutton.git
+
+		
+echo "#!/bin/bash
+
+cd /pensandotools/pentools/
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+echo """ """
+./pentools --help
+./pentools fw dss --host localhost -d 1 -f 1 --tne 1
+$SHELL
+" > /pensandotools/scripts/pentools_inner_run.sh
+
+echo "#!/bin/bash
+
+cd /pensandotools/Bigredbutton/
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+python3 bigredrest.py
+" >  /pensandotools/scripts/brb_inner_run.sh
+
+
+echo "#!/bin/bash
+
+#starts a new tmux session and start the inner_run_script
+tmux new -d -s pentools '/pensandotools/scripts/pentools_inner_run.sh'
+tmux new -d -s brb '/pensandotools/scripts/brb_inner_run.sh'
+
+sleep 20
+echo "Tools should be started"
+tmux list-s
+
+" > starttools.sh
+
+cd /pensandotools/
+sudo chmod +x starttools.sh
+sudo chmod +x scripts/*.sh
+
+sudo ln -s /usr/bin/python3 /usr/bin/python
+
+##### close install other tools. ######
+
+	}
+
 while true ;
 do
   echo "cntl-c  or x to exit"
@@ -131,8 +198,8 @@ you will need to do the host setup of dependencies and then the ELK.
 It is all scripted, you just need to select B the E.
 After each section is a auto reboot.
   	
-  	Set up Hosts (B) and Deploy ELK (E)"
-	echo "B or E"
+  	Set up Hosts (B) and Deploy ELK (E) and Testing Tools (T)"
+	echo "B or E or T"
 	read x
   
   clear
@@ -168,6 +235,23 @@ This is a one off process do not repeat.
 				    do
 					  	elk 
 				  done
+				  
+	  elif [ "$x" == "T" ]; then
+				echo "
+This is a one off process do not repeat.
+	
+		        "
+				  echo "cntl-c  or x to exit"
+				  echo ""    
+				  echo "Enter 'C' to continue :"
+				  read x
+					  connection $x
+					  clear
+				   if [ $x ==  C ] ; then 
+				     	tools 
+					 fi
+  
+				  
 				    
 
 	  elif [ "$x" == "x" ]; then
