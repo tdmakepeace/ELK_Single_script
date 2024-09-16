@@ -49,6 +49,7 @@ elk()
 		cd /pensandotools/
 		git clone https://github.com/amd/pensando-elk.git
 		cd /pensandotools/pensando-elk
+		clear 
 		`git branch --all | cut -d "/" -f3 > gitversion.txt`
 				echo "choose a branch "
 						  git branch --all | cut -d "/" -f3 |grep -n ''
@@ -59,14 +60,27 @@ elk()
 						   read x
 						   elkver=`sed "$x,1!d" gitversion.txt`
 		#				   echo $elkver
-								git checkout  $elkver
+					  		git checkout  $elkver
 				
 		
 		sed -i.bak  's/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''false'\''/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''true'\''/' docker-compose.yml
 		localip=`hostname -I | cut -d " " -f1`
 
 		sed -i.bak -r "s/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '$localip:9200'/" docker-compose.yml
-		more docker-compose.yml |grep EF_OUTPUT_ELASTICSEARCH
+		
+	echo " Just to show you the changes we have made to the docker compose files
+	 Was 
+	 EF_OUTPUT_ELASTICSEARCH_ENABLE: 'false'
+	 EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'
+	 
+	 Now 
+	 EF_OUTPUT_ELASTICSEARCH_ENABLE: 'true'
+	 EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '<YourIP>:9200'
+	 
+	 
+	 "
+		
+		more docker-compose.yml |egrep -i 'EF_OUTPUT_ELASTICSEARCH_ENABLE|EF_OUTPUT_ELASTICSEARCH_ADDRESSES'
 		read -p "Press enter to continue"
 		
 		echo " Go and make a cup of Tea
@@ -116,11 +130,11 @@ Services setting up please wait
 		clear
 		echo "					
 Services setting up please wait
-
+80%
 					"
 		clear
 		sleep 60	
-		read -p "Press enter to continue, this will include a reboot."
+		read -p "Services setup, We require a reboot. any key to continue"
 		clear
 		echo "					
 					Access the UI - https://$localip:5601'
