@@ -1,11 +1,29 @@
 #!/bin/bash
 
+###
+###This script has been build to install and configure the ELK stack on a default Ubuntu 22.04 servers install.
+###The only packages needing to be installed as part of the deployment of the Ubuntu servers is openSSH.
+###
+###Also it is recommended that you run a static-IP configuration, with a single network interface.
+###The script should be run as the first user create as part of the install, and uses SUDO for the deployment process.
+###	
+	
+
+
 base()
 	{
 		real_user=$(whoami)
 
+		## Update all the base image of Ubuntu before we progress. 
+		
+		echo " This script will run unattended for 5-10 minutes to do the 
+base setup of the server enviroment ready for the ELK stack. 
+It might appear to have paused, but leave it until the host reboots.
+
+	"
+		read -p "Press enter to continue"
+
 		sudo apt-get update
-		# sudo NEEDRESTART_MODE=a apt-get dist-upgrade --yes
 		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes
 
 		sleep 5
@@ -42,6 +60,17 @@ base()
 
 elk()
 	{
+				## Update all the base image of Ubuntu before we progress. 
+		
+		echo " This script will require some input for the first 2 minutes, and then run unattended for 5-10 minutes to do the 
+ELK setup of the enviroment.
+
+It might appear to have paused, but leave it until the host reboots.
+
+	"
+		read -p "Press enter to continue"
+		
+		
 		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes
 
 		sleep 10
@@ -69,15 +98,15 @@ elk()
 		sed -i.bak -r "s/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '$localip:9200'/" docker-compose.yml
 		
 	echo " Just to show you the changes we have made to the docker compose files
-	 Was 
+	 Was:
 	 EF_OUTPUT_ELASTICSEARCH_ENABLE: 'false'
 	 EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'
 	 
-	 Now 
+	 Now:
 	 EF_OUTPUT_ELASTICSEARCH_ENABLE: 'true'
 	 EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '<YourIP>:9200'
 	 
-	 
+	 Live:
 	 "
 		
 		more docker-compose.yml |egrep -i 'EF_OUTPUT_ELASTICSEARCH_ENABLE|EF_OUTPUT_ELASTICSEARCH_ADDRESSES'
@@ -99,7 +128,13 @@ This is going to take time to install and setup
 		sudo sysctl -w vm.max_map_count=262144
 		echo vm.max_map_count=262144 | sudo tee -a /etc/sysctl.conf 
 		clear 
+		
+		echo "					
+		
+Services setting up please wait
 
+					"
+					
 		sleep 10 
 				
 		docker compose up --detach
@@ -107,7 +142,7 @@ This is going to take time to install and setup
 		echo "					
 		
 Services setting up please wait
-
+25%
 					"
 		
 		sleep 60
@@ -132,8 +167,9 @@ Services setting up please wait
 Services setting up please wait
 80%
 					"
-		clear
+
 		sleep 60	
+		clear
 		read -p "Services setup, We require a reboot. any key to continue"
 		clear
 		echo "					
@@ -147,62 +183,6 @@ Services setting up please wait
 
 }
 
-
-tools()
-	{
-		##### install other tools. ######
-
-cd /pensandotools/
-git clone https://gitlab.com/pensando/tbd/utilities/pentools.git
-git clone https://gitlab+deploy-token-bigred:MPEzmdZ5-u_u7LuETBqt@gitlab.com/tdmakepeace/Bigredbutton.git
-
-		
-echo "#!/bin/bash
-
-cd /pensandotools/pentools/
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -U pip
-pip install -r requirements.txt
-echo """ """
-./pentools --help
-./pentools fw dss --host localhost -d 1 -f 1 --tne 1
-$SHELL
-" > /pensandotools/scripts/pentools_inner_run.sh
-
-echo "#!/bin/bash
-
-cd /pensandotools/Bigredbutton/
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -U pip
-pip install -r requirements.txt
-python3 bigredrest.py
-" >  /pensandotools/scripts/brb_inner_run.sh
-
-
-echo "#!/bin/bash
-
-#starts a new tmux session and start the inner_run_script
-tmux new -d -s pentools '/pensandotools/scripts/pentools_inner_run.sh'
-tmux new -d -s brb '/pensandotools/scripts/brb_inner_run.sh'
-
-sleep 20
-echo "Tools should be started"
-tmux list-s
-
-" > starttools.sh
-
-cd /pensandotools/
-sudo chmod +x starttools.sh
-sudo chmod +x scripts/*.sh
-
-sudo ln -s /usr/bin/python3 /usr/bin/python
-
-##### close install other tools. ######
-
-	}
-
 while true ;
 do
   echo "cntl-c  or x to exit"
@@ -212,8 +192,8 @@ you will need to do the host setup of dependencies and then the ELK.
 It is all scripted, you just need to select B the E.
 After each section is a auto reboot.
   	
-  	Set up Hosts (B) and Deploy ELK (E) and Testing Tools (T)"
-	echo "B or E or T"
+  	Set up Hosts (B) and Deploy ELK (E) "
+	echo "B or E "
 	read x
   
   clear
@@ -249,22 +229,6 @@ This is a one off process do not repeat.
 				    do
 					  	elk 
 				  done
-				  
-	  elif [ "$x" == "T" ]; then
-				echo "
-This is a one off process do not repeat.
-	
-		        "
-				  echo "cntl-c  or x to exit"
-				  echo ""    
-				  echo "Enter 'C' to continue :"
-				  read x
-					  connection $x
-					  clear
-				   if [ $x ==  C ] ; then 
-				     	tools 
-					 fi
-  
 				  
 				    
 
