@@ -6,19 +6,10 @@ This is a single script to install the ELK stack, and all it dependencies.
 Based on Ubuntu 22.04, but should work on other Ubuntu versions. 
 
 Option B - sets up all the dependencies and installs base services and requires a reboot. \
-Option E - Installs the ELK, the logstash passer and dashboards. This also requires a reboot to start the service on boot up. \
-Option T - Is optional, and installs BigRed and Pentools, and is not for production enviromements. 
+Option E - Installs the ELK, the logstash passer and dashboards. This also requires a reboot to start the service on boot up. 
 
 
 Under option "E" \
 You will be asked to select the Repo build, this is based on the CX version of code you are running.
 
 
-## Tools  - not to be used in production - only testing enviroments 
-If you install the tools option you will need to set the PSM connection details and passwords. \
-
-### Bigred
-File to be edited is ` /pensandotools/Bigredbutton/loginvar.py  ` 
-
-### Pentools
-File to be edited is `/pensandotools/pentools/.penrc`
