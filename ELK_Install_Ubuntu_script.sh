@@ -1,11 +1,17 @@
 #!/bin/bash
 
 ###
-###This script has been build to install and configure the ELK stack on a default Ubuntu 22.04 servers install.
-###The only packages needing to be installed as part of the deployment of the Ubuntu servers is openSSH.
+### This script has been build to install and configure the ELK stack on a default Ubuntu 22.04/24.04 servers install.
+### The only packages needing to be installed as part of the deployment of the Ubuntu servers is openSSH.
 ###
-###Also it is recommended that you run a static-IP configuration, with a single network interface.
-###The script should be run as the first user create as part of the install, and uses SUDO for the deployment process.
+### you can do a minimun install, but i would just stick with the servers install.
+###
+### Also it is recommended that you run a static-IP configuration, with a single or dual network interface.
+### The script should be run as the first user create as part of the install, and uses SUDO for the deployment process.
+
+
+### wget -O - https://raw.githubusercontent.com/tdmakepeace/ELK_Single_script/refs/heads/main/ELK_Install_Ubuntu_script.sh | bash
+
 ###	
 	
 
@@ -15,7 +21,8 @@ base()
 		real_user=$(whoami)
 
 		## Update all the base image of Ubuntu before we progress. 
-		
+		## then installs all the dependencies and sets up the permissions for Docker
+		clear
 		echo " This script will run unattended for 5-10 minutes to do the 
 base setup of the server enviroment ready for the ELK stack. 
 It might appear to have paused, but leave it until the host reboots.
@@ -43,8 +50,18 @@ It might appear to have paused, but leave it until the host reboots.
 		sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 		sudo apt-get update
 		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes
-#		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv --yes
-		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes
+		
+		version=` more /etc/os-release |grep VERSION_ID | cut -d \" -f 2`
+		if  [ "$version" == "24.04" ]; then
+# Ubuntu 24.04
+			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.12-venv tmux python3-pip python3-venv --yes
+
+  	elif [ "$version" == "22.04" ]; then
+# Ubuntu 22.04
+			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes
+  	else
+  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes
+   	fi
 
 		sudo usermod -aG docker $real_user
 		
@@ -80,36 +97,59 @@ It might appear to have paused, but leave it until the host reboots.
 		cd /pensandotools/pensando-elk
 		clear 
 		`git branch --all | cut -d "/" -f3 > gitversion.txt`
-				echo "choose a branch "
-						  git branch --all | cut -d "/" -f3 |grep -n ''
-						  
-						  echo " Select the line number
-						  
-						  "
-						   read x
-						   elkver=`sed "$x,1!d" gitversion.txt`
+		echo "choose a branch "
+		git branch --all | cut -d "/" -f3 |grep -n ''
+
+		echo " Select the line number
+
+		"
+		read x
+		elkver=`sed "$x,1!d" gitversion.txt`
 		#				   echo $elkver
-					  		git checkout  $elkver
+		git checkout  $elkver
 				
-		
+		cp docker-compose.yml docker-compose.yml.orig
 		sed -i.bak  's/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''false'\''/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''true'\''/' docker-compose.yml
 		localip=`hostname -I | cut -d " " -f1`
 
 		sed -i.bak -r "s/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '$localip:9200'/" docker-compose.yml
+
+		echo "Do you want to install a Elastiflow licence.
+  	
+  	Yes (y) and No (n) "
+		echo "y or n "
+		read x
+	  
+	  clear
+
+  	if  [ "$x" == "y" ]; then
+				echo "Paste the AccountID:
+				
+		        "
+			  read a
+			echo "Paste the licence key:
+				
+		        "
+			  read b
+			
 		
+		sed -i.bak -r "s/#EF_ACCOUNT_ID: ''/EF_ACCOUNT_ID: '$a'/" docker-compose.yml
+		sed -i.bak -r "s/#EF_FLOW_LICENSE_KEY: ''/EF_FLOW_LICENSE_KEY: '$b'/" docker-compose.yml
+		
+
+  	else
+    	echo "Continue"
+  	fi
+  			
 	echo " Just to show you the changes we have made to the docker compose files
 	 Was:
 	 EF_OUTPUT_ELASTICSEARCH_ENABLE: 'false'
 	 EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'
 	 
 	 Now:
-	 EF_OUTPUT_ELASTICSEARCH_ENABLE: 'true'
-	 EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '<YourIP>:9200'
-	 
-	 Live:
 	 "
-		
-		more docker-compose.yml |egrep -i 'EF_OUTPUT_ELASTICSEARCH_ENABLE|EF_OUTPUT_ELASTICSEARCH_ADDRESSES'
+				
+		more docker-compose.yml |egrep -i 'EF_OUTPUT_ELASTICSEARCH_ENABLE|EF_OUTPUT_ELASTICSEARCH_ADDRESSES|EF_ACCOUNT_ID|EF_FLOW_LICENSE_KEY'
 		read -p "Press enter to continue"
 		
 		echo " Go and make a cup of Tea
@@ -127,12 +167,17 @@ This is going to take time to install and setup
 		chmod -R 777 ./data
 		sudo sysctl -w vm.max_map_count=262144
 		echo vm.max_map_count=262144 | sudo tee -a /etc/sysctl.conf 
-		clear 
-		
-		echo "					
-		
-Services setting up please wait
+	
+	dockerup	
+}
 
+dockerup()
+{		
+		cd /pensandotools/pensando-elk/
+		echo "					
+				
+Services setting up please wait
+5%
 					"
 					
 		sleep 10 
@@ -142,10 +187,12 @@ Services setting up please wait
 		echo "					
 		
 Services setting up please wait
-25%
+15%
+
+-- This is a 100 second delay for the services to start - Please wait
 					"
 		
-		sleep 60
+		sleep 100
 		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
 		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_snapshot/my_fs_backup' -d @./elasticsearch/pensando_fs.json
 		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/pensando' -d @./elasticsearch/pensando_slm.json
@@ -154,67 +201,263 @@ Services setting up please wait
 		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/elastiflow' -d @./elasticsearch/elastiflow_ilm.json
 		echo "					
 Services setting up please wait
-50%
+70%
 					"
 							
-		sleep 60
-		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@./kibana/pensando-dss-syslog-10.14.0001.ndjson
-		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@./kibana/kibana-8.2.x-flow-codex.ndjson 
+		sleep 10
+		pensandodash=`ls ./kibana/pen*`
+		elastiflowdash=`ls ./kibana/kib*`
+		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
+		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
 
 		
-		clear
 		echo "					
 Services setting up please wait
 80%
 					"
 
-		sleep 60	
-		clear
+		sleep 20	
+
 		read -p "Services setup, We require a reboot. any key to continue"
 		clear
 		echo "					
 					Access the UI - https://$localip:5601'
-					once the server has rebooted. 
+					once the server has rebooted and the services started. 
+					Allow 5 minutes.
 					"
-
 		sleep 10	
 		sudo reboot
 		break
 
 }
 
+proxy()
+	{
+		echo " Do you require proxy config for:
+			Authenticated (a) or No Auth (n)
+			"
+		read p
+		clear
+
+  	if  [ "$p" == "a" ]; then
+  	 	echo " Paste your proxy configuration address.
+ 
+ example: 
+yourproxyaddress.co.uk
+or 
+a.b.c.d 
+
+		"
+		read url
+		
+		clear 
+		echo " Port number for Proxy 
+		"
+		read port
+		clear 
+		echo " Username for Proxy 
+		"
+		read user
+		clear 
+		echo " Password for Proxy 
+		"
+		read pass
+		
+		sudo rm -f -- /etc/apt/apt.conf
+		sudo touch /etc/apt/apt.conf
+		sudo chmod 777 /etc/apt/apt.conf
+		echo "Acquire::http::Proxy \"http://$user:$pass@$url:$port\";" >>  /etc/apt/apt.conf
+#read -p "test"
+		
+		git config --global http.proxy http://$user:$pass@p$url:$port
+#read -p "test"
+		### docker
+		sudo mkdir -p /etc/systemd/system/docker.service.d
+		sudo rm -f -- /etc/systemd/system/docker.service.d/proxy.conf
+		sudo touch /etc/systemd/system/docker.service.d/proxy.conf
+		sudo chmod 777 /etc/systemd/system/docker.service.d/proxy.conf
+		echo "[Service]
+		EnvironmentFile=/etc/system/default/docker
+" >> /etc/systemd/system/docker.service.d/proxy.conf
+#read -p "test"
+		sudo mkdir -p /etc/system/default/
+		sudo chmod 777 /etc/system/default/
+		sudo rm -f -- /etc/system/default/docker
+		sudo touch /etc/system/default/docker
+		sudo chmod 777 /etc/system/default/docker
+		echo "http_proxy='http%3A%2F%2F$user%3A$pass%40$url%3A$port%2F'" >/etc/system/default/docker
+#read -p "test"
+#  		sudo systemctl daemon-reload
+#  		sudo systemctl restart docker.service
+	
+	elif  [ "$p" == "n" ]; then
+	 	echo " Paste your proxy configuration address.
+
+ example: 
+yourproxyaddress.co.uk
+or 
+a.b.c.d 
+
+		"
+		read url
+		
+		clear 
+		echo " Port number for Proxy 
+		"
+		read port  		
+		
+		sudo rm -f -- /etc/apt/apt.conf
+		sudo touch /etc/apt/apt.conf
+		sudo chmod 777 /etc/apt/apt.conf
+		echo "Acquire::http::Proxy \"http://$url:$port\";" >>  /etc/apt/apt.conf
+		git config --global http.proxy http://$url:$port
+
+		### docker
+		sudo mkdir -p /etc/systemd/system/docker.service.d
+		sudo rm -f -- /etc/systemd/system/docker.service.d/proxy.conf
+		sudo touch /etc/systemd/system/docker.service.d/proxy.conf
+		sudo chmod 777 /etc/systemd/system/docker.service.d/proxy.conf
+		echo "[Service]
+Environment=\"HTTP_PROXY=http://$url:$port\"
+Environment=\"HTTPS_PROXY=https://$url:$port\"
+Environment=\"NO_PROXY=localhost,127.0.0.1,::1\"
+" >> /etc/systemd/system/docker.service.d/proxy.conf
+#  		sudo systemctl daemon-reload
+#  		sudo systemctl restart docker.service
+			
+			
+		else 
+		 	echo "try again"
+		
+		fi
+		
+		
+}
+
+upgrade()
+{
+		docker compose down
+		sudo apt-get update
+		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes
+		
+		cd /pensandotools/pensando-elk
+		clear 
+		git branch --all | cut -d "/" -f3 > gitversion.txt
+		echo "choose a branch "
+		git branch --all | cut -d "/" -f3 |grep -n ''
+
+		echo " Select the line number
+
+		"
+		read x
+		orig=`sed "1,1!d" gitversion.txt|cut -d ' ' -f 2`
+		elkver=`sed "$x,1!d" gitversion.txt`
+		#				   echo $elkver
+		cp docker-compose.yml docker-compose.yml.$orig
+		git checkout  $elkver --force
+		git pull
+ 		localip=`hostname -I | cut -d " " -f1`
+		
+		
+		EFaccount=`more docker-compose.yml.aoscx_10.13.1000 |grep EF_ACCOUNT_ID| cut -d ":" -f 2|cut -d " " -f2  `
+		EFLice=`more docker-compose.yml.aoscx_10.13.1000 |grep EF_FLOW_LICENSE_KEY| cut -d ":" -f 2|cut -d " " -f2  `
+		sed -i.bak  's/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''false'\''/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''true'\''/' docker-compose.yml
+		sed -i.bak -r "s/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '$localip:9200'/" docker-compose.yml
+		sed -i.bak -r "s/#EF_ACCOUNT_ID: ''/EF_ACCOUNT_ID: '$EFaccount'/" docker-compose.yml
+		sed -i.bak -r "s/#EF_FLOW_LICENSE_KEY: ''/EF_FLOW_LICENSE_KEY: '$EFLice'/" docker-compose.yml
+		
+		echo " Just to show you the changes we have made to the docker compose files
+		Was:
+		EF_OUTPUT_ELASTICSEARCH_ENABLE: 'false'
+		EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'
+
+		Now:
+		EF_OUTPUT_ELASTICSEARCH_ENABLE: 'true'
+		EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '<YourIP>:9200'
+
+		Live:
+		"
+				
+		more docker-compose.yml |egrep -i 'EF_OUTPUT_ELASTICSEARCH_ENABLE|EF_OUTPUT_ELASTICSEARCH_ADDRESSES|EF_ACCOUNT_ID|EF_FLOW_LICENSE_KEY'
+		read -p "Press enter to continue"
+		
+		echo " Go and make a cup of Tea
+This is going to take time to install and setup
+					
+					
+					
+					"
+					
+		cd /pensandotools/pensando-elk/
+		echo "TAG=8.13.4" >.env
+		
+		dockerup
+}
+
+
+testcode()
+{
+	dockerup
+}
+
 while true ;
 do
-  echo "cntl-c  or x to exit"
+	clear
+  echo "press cntl-c  or x to exit at any time."
   echo ""    
-  echo "The following will setup the ELK stack for the CX10k enviroment. 
-you will need to do the host setup of dependencies and then the ELK. 
-It is all scripted, you just need to select B the E.
+  echo "The following will setup the ELK stack for the CX10k enviroment based on a clean install of ubuntu with a static IP.
+It will need to do the host setup of dependencies and then the ELK. 
+It is all scripted, you just need to run option B then E.
+
 After each section is a auto reboot.
   	
-  	Set up Hosts (B) and Deploy ELK (E) "
-	echo "B or E "
+  	Set up Hosts (B) and Deploy ELK (E) and Update ELK (U) 
+
+  	If you need to configure a Proxy select (P)
+  		
+  		
+  	"
+	echo "B or E or U or P"
 	read x
   
   clear
 
   	if  [ "$x" == "B" ]; then
 				echo "
-This is a one off process do not repeat.
+This should be a one off process do not repeat unless you have cancelled it for some reason.
 	
 		        "
 				  echo "cntl-c  or x to exit"
 				  echo ""    
 				  echo "Enter 'C' to continue :"
 				  read x
-					  connection $x
+#					  connection $x
 					  clear
 				   while [ $x ==  C ] ;
 				    do
 					  	base 
+					  	x="done"
 				  done
   		
 	  elif [ "$x" == "E" ]; then
+				echo "
+This is a one off process do not repeat, as it will default the setting in the ELK stack.
+	
+		        "
+				  echo "cntl-c  or x to exit"
+				  echo ""    
+				  echo "Enter 'C' to continue :"
+				  read x
+#					  connection $x
+					  clear
+				   while [ $x ==  C ] ;
+				    do
+					  	elk 
+					  	x="done"
+				  done
+				  
+				    
+			elif [ "$x" == "P" ]; then
 				echo "
 This is a one off process do not repeat.
 	
@@ -223,14 +466,36 @@ This is a one off process do not repeat.
 				  echo ""    
 				  echo "Enter 'C' to continue :"
 				  read x
-					  connection $x
+#					  connection $x
 					  clear
 				   while [ $x ==  C ] ;
 				    do
-					  	elk 
+					  	proxy 
+					  	x="done"
 				  done
 				  
-				    
+
+			elif [ "$x" == "U" ]; then
+				echo "
+This process is designed to update the base OS packages and allow you to select a upgrade on the ELK enviroment.
+	
+		        "
+				  echo "cntl-c  or x to exit"
+				  echo ""    
+				  echo "Enter 'C' to continue :"
+				  read x
+#					  connection $x
+					  clear
+				   while [ $x ==  C ] ;
+				    do
+					  	upgrade
+					  	x="done"
+				  done
+				  
+
+			elif [ "$x" == "T" ]; then
+					testcode
+				  
 
 	  elif [ "$x" == "x" ]; then
 				break
