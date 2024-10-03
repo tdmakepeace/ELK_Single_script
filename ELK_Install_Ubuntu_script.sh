@@ -364,8 +364,8 @@ upgrade()
 		EFLice=`more docker-compose.yml.aoscx_10.13.1000 |grep EF_FLOW_LICENSE_KEY| cut -d ":" -f 2|cut -d " " -f2  `
 		sed -i.bak  's/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''false'\''/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''true'\''/' docker-compose.yml
 		sed -i.bak -r "s/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '$localip:9200'/" docker-compose.yml
-		sed -i.bak -r "s/#EF_ACCOUNT_ID: ''/EF_ACCOUNT_ID: '$EFaccount'/" docker-compose.yml
-		sed -i.bak -r "s/#EF_FLOW_LICENSE_KEY: ''/EF_FLOW_LICENSE_KEY: '$EFLice'/" docker-compose.yml
+		sed -i.bak -r "s/#EF_ACCOUNT_ID: ''/EF_ACCOUNT_ID: $EFaccount/" docker-compose.yml
+		sed -i.bak -r "s/#EF_FLOW_LICENSE_KEY: ''/EF_FLOW_LICENSE_KEY: $EFLice/" docker-compose.yml
 		
 		echo " Just to show you the changes we have made to the docker compose files
 		Was:
