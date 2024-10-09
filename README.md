@@ -18,3 +18,25 @@ wget -O ELK_Install_Ubuntu_script.sh  https://raw.githubusercontent.com/tdmakepe
 ```
 
 You should re run the command above for script updates as well.
+
+
+### Run
+You need to run the command a few times, once to do the base install. Secondaly to do the install or ELK.
+1. Option B - will reboot.
+2. Option E - will reboot.
+
+
+
+### OVA option ###
+OVA image prebuilt
+``` 
+https://www.dropbox.com/scl/fi/iwqll9q185gq1lyaskecv/HPELABS_ELK.ova?rlkey=xcal9lt2lnnyrlcvvh3oguiw7&st=04bhdpnw&dl=1
+```
+
+OVA image details
+``` 
+https://www.dropbox.com/scl/fi/5hkg1407qwy0iqbl6ohdd/HPELABS_ELK.txt?rlkey=db0yu22vwtq7qq414park3m0o&st=s6wfxdwq&dl=1 
+```
+An image has been prebuilt with everything installed and upto date as off the 8th Oct 2024.
+The image details link, has the username and password settings.
+
