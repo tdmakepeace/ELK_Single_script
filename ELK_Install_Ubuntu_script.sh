@@ -10,7 +10,7 @@
 ### The script should be run as the first user create as part of the install, and uses SUDO for the deployment process.
 
 
-### wget -O ELK_Install_Ubuntu_script.sh  https://raw.githubusercontent.com/tdmakepeace/ELK_Single_script/refs/heads/main/ELK_Install_Ubuntu_script.sh && chmod +x ELK_Install_Ubuntu_script.sh  &&  ./ELK_Install_Ubuntu_script.sh
+### wget -O ELK_Install_Ubuntu_script.sh  https://raw.githubusercontent.com/tdmakepeace/ELK_Single_script/refs/heads/main/ELK_Install_Ubuntu_script.sh --no-check-certificate && chmod +x ELK_Install_Ubuntu_script.sh  &&  ./ELK_Install_Ubuntu_script.sh
 
 
 ###	
@@ -32,7 +32,7 @@ It might appear to have paused, but leave it until the host reboots.
 		read -p "Press enter to continue"
 
 		sudo apt-get update --allow-insecure-repositories
-		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes --allow-insecure-repositories
+		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
 
 		sleep 5
 
@@ -44,24 +44,24 @@ It might appear to have paused, but leave it until the host reboots.
 		mkdir -p /pensandotools/scripts
 		sudo mkdir -p /etc/apt/keyrings
 
-		sudo  NEEDRESTART_SUSPEND=1 apt-get install curl gnupg ca-certificates lsb-release --yes --allow-insecure-repositories
+		sudo  NEEDRESTART_SUSPEND=1 apt-get install curl gnupg ca-certificates lsb-release --yes 
 		sudo mkdir -p /etc/apt/keyrings
 		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg  --insecure
 
 		sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 		sudo apt-get update --allow-insecure-repositories
-		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes --allow-insecure-repositories
+		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
 		
 		version=` more /etc/os-release |grep VERSION_ID | cut -d \" -f 2`
 		if  [ "$version" == "24.04" ]; then
 # Ubuntu 24.04
-			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.12-venv tmux python3-pip python3-venv --yes --allow-insecure-repositories
+			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.12-venv tmux python3-pip python3-venv --yes 
 
   	elif [ "$version" == "22.04" ]; then
 # Ubuntu 22.04
-			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes --allow-insecure-repositories
+			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes 
   	else
-  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes --allow-insecure-repositories
+  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes 
    	fi
 
 		sudo usermod -aG docker $real_user
@@ -89,12 +89,16 @@ It might appear to have paused, but leave it until the host reboots.
 		read -p "Press enter to continue"
 		
 		
-		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes
+		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
 
 		sleep 10
 		
 		cd /pensandotools/
-		git clone https://github.com/amd/pensando-elk.git
+		## test 
+		git config http.sslVerify "false"
+		git clone GIT_SSL_NO_VERIFY=true https://github.com/amd/pensando-elk.git 
+		# git clone https://github.com/amd/pensando-elk.git 
+		
 		cd /pensandotools/pensando-elk
 		clear 
 		`git branch --all | cut -d "/" -f3 > gitversion.txt`
