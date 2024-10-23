@@ -10,7 +10,7 @@
 ### The script should be run as the first user create as part of the install, and uses SUDO for the deployment process.
 
 
-### wget -O ELK_Install_Ubuntu_script.sh  https://raw.githubusercontent.com/tdmakepeace/ELK_Single_script/refs/heads/main/ELK_Install_Ubuntu_script.sh --no-check-certificate && chmod +x ELK_Install_Ubuntu_script.sh  &&  ./ELK_Install_Ubuntu_script.sh
+### wget -O ELK_Install_Ubuntu_script.sh  https://raw.githubusercontent.com/tdmakepeace/ELK_Single_script/refs/heads/main/ELK_Install_Ubuntu_script.sh && chmod +x ELK_Install_Ubuntu_script.sh  &&  ./ELK_Install_Ubuntu_script.sh
 
 
 ###	
@@ -31,7 +31,7 @@ It might appear to have paused, but leave it until the host reboots.
 	"
 		read -p "Press enter to continue"
 
-		sudo apt-get update --allow-insecure-repositories
+		sudo apt-get update 
 		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
 
 		sleep 5
@@ -46,8 +46,8 @@ It might appear to have paused, but leave it until the host reboots.
 
 		sudo  NEEDRESTART_SUSPEND=1 apt-get install curl gnupg ca-certificates lsb-release --yes 
 		sudo mkdir -p /etc/apt/keyrings
-		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg  --insecure
-
+		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg  
+		
 		sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 		sudo apt-get update --allow-insecure-repositories
 		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
@@ -94,10 +94,7 @@ It might appear to have paused, but leave it until the host reboots.
 		sleep 10
 		
 		cd /pensandotools/
-		## test 
-		git config http.sslVerify "false"
-		git clone GIT_SSL_NO_VERIFY=true https://github.com/amd/pensando-elk.git 
-		# git clone https://github.com/amd/pensando-elk.git 
+		git clone https://github.com/amd/pensando-elk.git 
 		
 		cd /pensandotools/pensando-elk
 		clear 
@@ -118,6 +115,7 @@ It might appear to have paused, but leave it until the host reboots.
 		localip=`hostname -I | cut -d " " -f1`
 
 		sed -i.bak -r "s/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '$localip:9200'/" docker-compose.yml
+		sed -i.bak -r "s/#EF_OUTPUT_ELASTICSEARCH_INDEX_PERIOD: 'daily'/EF_OUTPUT_ELASTICSEARCH_INDEX_PERIOD: 'daily'/" docker-compose.yml
 
 		echo "Do you want to install a Elastiflow licence.
   	
