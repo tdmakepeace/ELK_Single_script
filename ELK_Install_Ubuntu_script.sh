@@ -31,8 +31,8 @@ It might appear to have paused, but leave it until the host reboots.
 	"
 		read -p "Press enter to continue"
 
-		sudo apt-get update
-		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes
+		sudo apt-get update --allow-insecure-repositories
+		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes --allow-insecure-repositories
 
 		sleep 5
 
@@ -44,24 +44,24 @@ It might appear to have paused, but leave it until the host reboots.
 		mkdir -p /pensandotools/scripts
 		sudo mkdir -p /etc/apt/keyrings
 
-		sudo  NEEDRESTART_SUSPEND=1 apt-get install curl gnupg ca-certificates lsb-release --yes
+		sudo  NEEDRESTART_SUSPEND=1 apt-get install curl gnupg ca-certificates lsb-release --yes --allow-insecure-repositories
 		sudo mkdir -p /etc/apt/keyrings
-		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg  --insecure
 
 		sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-		sudo apt-get update
-		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes
+		sudo apt-get update --allow-insecure-repositories
+		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes --allow-insecure-repositories
 		
 		version=` more /etc/os-release |grep VERSION_ID | cut -d \" -f 2`
 		if  [ "$version" == "24.04" ]; then
 # Ubuntu 24.04
-			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.12-venv tmux python3-pip python3-venv --yes
+			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.12-venv tmux python3-pip python3-venv --yes --allow-insecure-repositories
 
   	elif [ "$version" == "22.04" ]; then
 # Ubuntu 22.04
-			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes
+			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes --allow-insecure-repositories
   	else
-  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes
+  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes --allow-insecure-repositories
    	fi
 
 		sudo usermod -aG docker $real_user
