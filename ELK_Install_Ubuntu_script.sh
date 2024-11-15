@@ -60,8 +60,11 @@ It might appear to have paused, but leave it until the host reboots.
   	elif [ "$version" == "22.04" ]; then
 # Ubuntu 22.04
 			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes 
-  	else
-  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes 
+  	elif [ "$version" == "20.04" ]; then
+# Ubuntu 20.04
+			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.9-venv tmux python3-pip python3-venv --yes 
+   	else
+  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.8-venv tmux python3-pip python3-venv --yes 
    	fi
 
 		sudo usermod -aG docker $real_user
