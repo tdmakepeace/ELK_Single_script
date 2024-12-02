@@ -3,10 +3,10 @@
 
 This is a single script to install the ELK stack, and all it dependencies. 
 
-Based on Ubuntu 22.04 or 24.04, but should work on other Ubuntu versions. 
+Based on Ubuntu 20.04, 22.04 or 24.04, but should work on other Ubuntu versions. 
 
 Option B - sets up all the dependencies and installs base services and requires a reboot. \
-Option E - Installs the ELK, the logstash passer and dashboards. This also requires a reboot to start the service on boot up. 
+Option E - Installs the ELK, the logstash passer and dashboards. \
 Option U - upgrade and change versions.
 
 Option P - to set up proxy access if in a closed enviroment.
@@ -23,7 +23,7 @@ You should re run the command above for script updates as well.
 ### Run
 You need to run the command a few times, once to do the base install. Secondaly to do the install or ELK.
 1. Option B - will reboot.
-2. Option E - will reboot.
+2. Option E - will provide access to the dashboard after the script finishes. 
 
 
 
