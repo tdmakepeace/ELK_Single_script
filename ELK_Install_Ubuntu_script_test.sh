@@ -15,7 +15,6 @@
 
 ###	
 
-# ELK="TAG=8.12.2"
 ELK="TAG=8.16.1"
 
 	
@@ -48,6 +47,8 @@ It might appear to have paused, but leave it until the host reboots.
 
 It is recommended to be a static IP configuration.
 
+Press Cntl-C to exit if you need to set static IP.
+
 	"
 		read -p "Press enter to continue"
 
@@ -61,7 +62,7 @@ elknote()
 		echo " This script will require some input for the first 2 minutes, and then run unattended for 5-10 minutes to do the 
 ELK setup of the enviroment.
 
-It might appear to have paused, but leave it until the host reboots.
+It might appear to have paused, but leave it until to complete.
 
 	"
 		read -p "Press enter to continue"
