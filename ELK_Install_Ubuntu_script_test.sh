@@ -15,10 +15,8 @@
 
 ###	
 
+# ELK="TAG=8.12.2"
 ELK="TAG=8.16.1"
-Pendash="pensando-dss-10.12-syslog.ndjson"
-Elastiflowdash="kibana-7.17.x-flow-codex.ndjson"
-
 
 	
 rebootserver()
@@ -45,7 +43,7 @@ basenote()
 		## then installs all the dependencies and sets up the permissions for Docker
 		clear
 		echo " This script will run unattended for 5-10 minutes to do the 
-base setup of the server enviroment ready for the ELK stack. 
+base setup of the server enviroment ready for the Elastic stack. 
 It might appear to have paused, but leave it until the host reboots.
 
 It is recommended to be a static IP configuration.
@@ -214,6 +212,7 @@ This is going to take time to install and setup
 	
 #call next part.
 	# dockerup	
+	
 }
 
 dockerup()
@@ -250,8 +249,8 @@ Services setting up please wait
 					"
 							
 		sleep 10
-		pensandodash=`ls ./kibana/pen*`
-		elastiflowdash=`ls ./kibana/kib*`
+		pensandodash=`ls -t ./kibana/pen* | head -1`
+		elastiflowdash=`ls -t  ./kibana/kib* | head -1`
 		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
 		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
 
@@ -262,7 +261,6 @@ Services setting up please wait
 					"
 
 		sleep 20	
-
 
 
 }
@@ -376,7 +374,8 @@ upgrade()
 			
 		docker compose down
 		updates
-				
+		echo $ELK >.env
+		
 		cd /pensandotools/pensando-elk
 		clear 
 		git branch --all | cut -d "/" -f3 > gitversion.txt
@@ -390,14 +389,16 @@ upgrade()
 		orig=`sed "1,1!d" gitversion.txt|cut -d ' ' -f 2`
 		elkver=`sed "$x,1!d" gitversion.txt`
 		#				   echo $elkver
-		cp docker-compose.yml docker-compose.yml.$orig
+		sudo cp docker-compose.yml docker-compose.yml.$orig
 		git checkout  $elkver --force
 		git pull
  		localip=`hostname -I | cut -d " " -f1`
 		
+		olddocker=`ls -t docker*aos* |head -1`
 		
-		EFaccount=`more docker-compose.yml.aoscx_10.13.1000 |grep EF_ACCOUNT_ID| cut -d ":" -f 2|cut -d " " -f2  `
-		EFLice=`more docker-compose.yml.aoscx_10.13.1000 |grep EF_FLOW_LICENSE_KEY| cut -d ":" -f 2|cut -d " " -f2  `
+		
+		EFaccount=`more $olddocker |grep EF_ACCOUNT_ID| cut -d ":" -f 2|cut -d " " -f2  `
+		EFLice=`more $olddocker |grep EF_FLOW_LICENSE_KEY| cut -d ":" -f 2|cut -d " " -f2  `
 		sed -i.bak  's/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''false'\''/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''true'\''/' docker-compose.yml
 		sed -i.bak -r "s/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '$localip:9200'/" docker-compose.yml
 		sed -i.bak -r "s/#EF_ACCOUNT_ID: ''/EF_ACCOUNT_ID: $EFaccount/" docker-compose.yml
@@ -428,6 +429,7 @@ This is going to take time to install and setup
 		cd /pensandotools/pensando-elk/
 		echo $ELK >.env
 		
+		
 }
 
 
@@ -447,15 +449,15 @@ do
   
   "
   echo "
-The following will setup the ELK stack for the CX10k enviroment based on a clean install of ubuntu with a static IP.
+This following script will setup Elastic and install the CX10k Visualization project on a clean install of Ubuntu with a static IP.
 
-It will need to do the host setup of dependencies and then the ELK install. 
+It will update the host to setup all dependencies and then install Elastic.
 It is all scripted, you just need to run option B then E.
-	
-Please run the following steps:
+
+From the host you wish to install the project on run the following steps:
 
 1. Select 'B' for the base install.
-2. The host will reboot, run the script again from the local directory.
+2. The host will reboot, run the script again from the local directory on the host.
 3. Select 'E' for the ELK install.
 
 
@@ -515,6 +517,7 @@ This is a one off process do not repeat, as it will default the setting in the E
 					  	dockerup
 					  	dockerupnote
 					  	x="done"
+					  exit 0
 				  done
 				  
 				    
@@ -568,6 +571,7 @@ This process is designed to update the base OS packages and allow you to select 
 					  	upgrade
 					  	dockerup
 					  	dockerupnote
+					  	rebootserver
 					  	x="done"
 				  done
 				  

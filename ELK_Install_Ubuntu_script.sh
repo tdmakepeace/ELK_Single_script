@@ -14,28 +14,83 @@
 
 
 ###	
-	
 
+ELK="TAG=8.16.1"
+
+	
+rebootserver()
+{
+		echo "rebooting"
+		
+		sleep 5
+		sudo reboot
+		break
+}
+
+updates()
+{
+		
+		sudo apt-get update 
+		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
+
+		sleep 10
+}
+
+basenote()
+{
+		## Update all the base image of Ubuntu before we progress. 
+		## then installs all the dependencies and sets up the permissions for Docker
+		clear
+		echo " This script will run unattended for 5-10 minutes to do the 
+base setup of the server enviroment ready for the Elastic stack. 
+It might appear to have paused, but leave it until the host reboots.
+
+It is recommended to be a static IP configuration.
+
+Press Cntl-C to exit if you need to set static IP.
+
+	"
+		read -p "Press enter to continue"
+
+
+	}
+
+elknote()
+{
+				## Update all the base image of Ubuntu before we progress. 
+		
+		echo " This script will require some input for the first 2 minutes, and then run unattended for 5-10 minutes to do the 
+ELK setup of the enviroment.
+
+It might appear to have paused, but leave it until to complete.
+
+	"
+		read -p "Press enter to continue"
+	
+	
+}
+
+dockerupnote()
+{
+
+		clear
+		echo "					
+					Access the UI - https://$localip:5601'
+					
+					If the server is rebooted allow 5 minutes for all the service to come up
+					before you attemp to access the Kibana dashboards. 
+					
+					"
+		read -p "Services setup. any key to continue"
+							
+}
 
 base()
 	{
 		real_user=$(whoami)
 
-		## Update all the base image of Ubuntu before we progress. 
-		## then installs all the dependencies and sets up the permissions for Docker
-		clear
-		echo " This script will run unattended for 5-10 minutes to do the 
-base setup of the server enviroment ready for the ELK stack. 
-It might appear to have paused, but leave it until the host reboots.
-
-	"
-		read -p "Press enter to continue"
-
-		sudo apt-get update 
-		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
-
-		sleep 5
-
+		updates
+		
 		cd /
 		sudo mkdir pensandotools
 		sudo chown $real_user:$real_user pensandotools
@@ -69,32 +124,13 @@ It might appear to have paused, but leave it until the host reboots.
 
 		sudo usermod -aG docker $real_user
 		
-		sleep 5		
-		echo "rebooting"
-		
-		sleep 5
-		sudo reboot
-		break
-		
 		}
+
+
 
 
 elk()
 	{
-				## Update all the base image of Ubuntu before we progress. 
-		
-		echo " This script will require some input for the first 2 minutes, and then run unattended for 5-10 minutes to do the 
-ELK setup of the enviroment.
-
-It might appear to have paused, but leave it until the host reboots.
-
-	"
-		read -p "Press enter to continue"
-		
-		
-		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
-
-		sleep 10
 		
 		cd /pensandotools/
 		git clone https://github.com/amd/pensando-elk.git 
@@ -158,15 +194,16 @@ It might appear to have paused, but leave it until the host reboots.
 		more docker-compose.yml |egrep -i 'EF_OUTPUT_ELASTICSEARCH_ENABLE|EF_OUTPUT_ELASTICSEARCH_ADDRESSES|EF_ACCOUNT_ID|EF_FLOW_LICENSE_KEY'
 		read -p "Press enter to continue"
 		
-		echo " Go and make a cup of Tea
+		echo " 
+		
+Go and make a cup of Tea
 This is going to take time to install and setup
-					
 					
 					
 					"
 					
 		cd /pensandotools/pensando-elk/
-		echo "TAG=8.13.4" >.env
+		echo $ELK >.env
 		mkdir -p data/es_backups
 		mkdir -p data/pensando_es
 		mkdir -p data/elastiflow
@@ -174,7 +211,9 @@ This is going to take time to install and setup
 		sudo sysctl -w vm.max_map_count=262144
 		echo vm.max_map_count=262144 | sudo tee -a /etc/sysctl.conf 
 	
-	dockerup	
+#call next part.
+	# dockerup	
+	
 }
 
 dockerup()
@@ -195,7 +234,7 @@ Services setting up please wait
 Services setting up please wait
 15%
 
--- This is a 100 second delay for the services to start - Please wait
+-- This is a 100 second delay for the services to start before we import the config - Please wait
 					"
 		
 		sleep 100
@@ -211,8 +250,8 @@ Services setting up please wait
 					"
 							
 		sleep 10
-		pensandodash=`ls ./kibana/pen*`
-		elastiflowdash=`ls ./kibana/kib*`
+		pensandodash=`ls -t ./kibana/pen* | head -1`
+		elastiflowdash=`ls -t  ./kibana/kib* | head -1`
 		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
 		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
 
@@ -224,16 +263,6 @@ Services setting up please wait
 
 		sleep 20	
 
-		read -p "Services setup, We require a reboot. any key to continue"
-		clear
-		echo "					
-					Access the UI - https://$localip:5601'
-					once the server has rebooted and the services started. 
-					Allow 5 minutes.
-					"
-		sleep 10	
-		sudo reboot
-		break
 
 }
 
@@ -342,9 +371,11 @@ Environment=\"NO_PROXY=localhost,127.0.0.1,::1\"
 
 upgrade()
 {
+		cd /pensandotools/pensando-elk/
+			
 		docker compose down
-		sudo apt-get update
-		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes
+		updates
+		echo $ELK >.env
 		
 		cd /pensandotools/pensando-elk
 		clear 
@@ -359,14 +390,16 @@ upgrade()
 		orig=`sed "1,1!d" gitversion.txt|cut -d ' ' -f 2`
 		elkver=`sed "$x,1!d" gitversion.txt`
 		#				   echo $elkver
-		cp docker-compose.yml docker-compose.yml.$orig
+		sudo cp docker-compose.yml docker-compose.yml.$orig
 		git checkout  $elkver --force
 		git pull
  		localip=`hostname -I | cut -d " " -f1`
 		
+		olddocker=`ls -t docker*aos* |head -1`
 		
-		EFaccount=`more docker-compose.yml.aoscx_10.13.1000 |grep EF_ACCOUNT_ID| cut -d ":" -f 2|cut -d " " -f2  `
-		EFLice=`more docker-compose.yml.aoscx_10.13.1000 |grep EF_FLOW_LICENSE_KEY| cut -d ":" -f 2|cut -d " " -f2  `
+		
+		EFaccount=`more $olddocker |grep EF_ACCOUNT_ID| cut -d ":" -f 2|cut -d " " -f2  `
+		EFLice=`more $olddocker |grep EF_FLOW_LICENSE_KEY| cut -d ":" -f 2|cut -d " " -f2  `
 		sed -i.bak  's/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''false'\''/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''true'\''/' docker-compose.yml
 		sed -i.bak -r "s/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '$localip:9200'/" docker-compose.yml
 		sed -i.bak -r "s/#EF_ACCOUNT_ID: ''/EF_ACCOUNT_ID: $EFaccount/" docker-compose.yml
@@ -395,29 +428,41 @@ This is going to take time to install and setup
 					"
 					
 		cd /pensandotools/pensando-elk/
-		echo "TAG=8.13.4" >.env
+		echo $ELK >.env
 		
-		dockerup
+		
 }
 
 
 testcode()
 {
-	dockerup
+		echo " 
+		Space for testing
+					"
 }
 
 while true ;
 do
 	clear
-  echo "press cntl-c  or x to exit at any time."
-  echo ""    
-  echo "The following will setup the ELK stack for the CX10k enviroment based on a clean install of ubuntu with a static IP.
-It will need to do the host setup of dependencies and then the ELK. 
+  echo "press cntl-c  or x to exit at any time.
+  
+  
+  
+  "
+  echo "
+This following script will setup Elastic and install the CX10k Visualization project on a clean install of Ubuntu with a static IP.
+
+It will update the host to setup all dependencies and then install Elastic.
 It is all scripted, you just need to run option B then E.
 
-After each section is a auto reboot.
-  	
-  	Set up Hosts (B) and Deploy ELK (E) and Update ELK (U) 
+From the host you wish to install the project on run the following steps:
+
+1. Select 'B' for the base install.
+2. The host will reboot, run the script again from the local directory on the host.
+3. Select 'E' for the ELK install.
+
+
+  	Setup options Hosts (B) and Deploy ELK (E) and Update ELK (U) 
 
   	If you need to configure a Proxy select (P)
   		
@@ -425,10 +470,11 @@ After each section is a auto reboot.
   	"
 	echo "B or E or U or P"
 	read x
+  x=${x,,}
   
   clear
 
-  	if  [ "$x" == "B" ]; then
+  	if  [ $x == "b" ]; then
 				echo "
 This should be a one off process do not repeat unless you have cancelled it for some reason.
 	
@@ -437,73 +483,105 @@ This should be a one off process do not repeat unless you have cancelled it for 
 				  echo ""    
 				  echo "Enter 'C' to continue :"
 				  read x
-#					  connection $x
+				    x=${x,,}
 					  clear
-				   while [ $x ==  C ] ;
+				   while [ $x ==  "c" ] ;
 				    do
+				    	basenote
 					  	base 
+					  	rebootserver
 					  	x="done"
 				  done
   		
-	  elif [ "$x" == "E" ]; then
+	  elif [  $x == "e" ]; then
+	  		clear
+  			echo "press cntl-c  or x to exit at any time.
+  
+  
+  
+  			"
+    
 				echo "
 This is a one off process do not repeat, as it will default the setting in the ELK stack.
 	
 		        "
-				  echo "cntl-c  or x to exit"
-				  echo ""    
 				  echo "Enter 'C' to continue :"
 				  read x
-#					  connection $x
-					  clear
-				   while [ $x ==  C ] ;
+				  x=${x,,}
+
+ 					
+ 					  clear
+				   while [  $x ==  "c" ] ;
 				    do
+				    	elknote
 					  	elk 
+					  	dockerup
+					  	dockerupnote
 					  	x="done"
+					  exit 0
 				  done
 				  
 				    
-			elif [ "$x" == "P" ]; then
+			elif [  $x == "P" ]; then
+					  		clear
+  			echo "press cntl-c  or x to exit at any time.
+  
+  
+  
+  			"
+    
+    
 				echo "
 This is a one off process do not repeat.
 	
 		        "
-				  echo "cntl-c  or x to exit"
-				  echo ""    
+  
 				  echo "Enter 'C' to continue :"
 				  read x
-#					  connection $x
+				  x=${x,,}
+
 					  clear
-				   while [ $x ==  C ] ;
+				   while [  $x ==   "c" ] ;
 				    do
 					  	proxy 
 					  	x="done"
 				  done
 				  
 
-			elif [ "$x" == "U" ]; then
+			elif [  $x ==  "u" ]; then
+					  		clear
+  			echo "press cntl-c  or x to exit at any time.
+  
+  
+  
+  			"
+    
+    
 				echo "
 This process is designed to update the base OS packages and allow you to select a upgrade on the ELK enviroment.
 	
 		        "
-				  echo "cntl-c  or x to exit"
-				  echo ""    
+ 
 				  echo "Enter 'C' to continue :"
 				  read x
-#					  connection $x
-					  clear
-				   while [ $x ==  C ] ;
+				  x=${x,,}
+
+				  clear
+				   while [  $x ==   "c" ] ;
 				    do
 					  	upgrade
+					  	dockerup
+					  	dockerupnote
+					  	rebootserver
 					  	x="done"
 				  done
 				  
 
-			elif [ "$x" == "T" ]; then
+			elif [  $x ==  "t" ]; then
 					testcode
 				  
 
-	  elif [ "$x" == "x" ]; then
+	  elif [  $x ==  "x" ]; then
 				break
 
 
