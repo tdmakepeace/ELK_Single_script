@@ -16,7 +16,11 @@
 ###	
 
 ELK="TAG=8.16.1"
+gitlocation="https://github.com/amd/pensando-elk.git"
+basefolder="pensando-elk"
+rootfolder="pensandotools"
 
+###
 	
 rebootserver()
 {
@@ -35,6 +39,16 @@ updates()
 
 		sleep 10
 }
+
+updatesred()
+{
+		subscription-manager attach --auto
+		subscription-manager repos
+		sudo yum update -y -q 
+
+		sleep 10
+}
+
 
 basenote()
 {
@@ -82,47 +96,67 @@ dockerupnote()
 					
 					"
 		read -p "Services setup. any key to continue"
-							
+		exit 0	
 }
 
 base()
 	{
 		real_user=$(whoami)
 
-		updates
-		
-		cd /
-		sudo mkdir pensandotools
-		sudo chown $real_user:$real_user pensandotools
-		sudo chmod 777 pensandotools
-		mkdir -p /pensandotools/
-		mkdir -p /pensandotools/scripts
-		sudo mkdir -p /etc/apt/keyrings
 
-		sudo  NEEDRESTART_SUSPEND=1 apt-get install curl gnupg ca-certificates lsb-release --yes 
-		sudo mkdir -p /etc/apt/keyrings
-		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg  
-		
-		sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-		sudo apt-get update --allow-insecure-repositories
-		sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
-		
-		version=` more /etc/os-release |grep VERSION_ID | cut -d \" -f 2`
-		if  [ "$version" == "24.04" ]; then
-# Ubuntu 24.04
-			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.12-venv tmux python3-pip python3-venv --yes 
+		os=`more /etc/os-release |grep PRETTY_NAME | cut -d  \" -f2 | cut -d " " -f1`
+		if [ "$os" == "Ubuntu" ]; then 
+				updates
+				cd /
+				sudo mkdir $rootfolder
+				sudo chown $real_user:$real_user $rootfolder
+				sudo chmod 777 $rootfolder
+				mkdir -p /$rootfolder/
+				mkdir -p /$rootfolder/scripts
+				sudo mkdir -p /etc/apt/keyrings
 
-  	elif [ "$version" == "22.04" ]; then
-# Ubuntu 22.04
-			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes 
-  	elif [ "$version" == "20.04" ]; then
-# Ubuntu 20.04
-			sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.9-venv tmux python3-pip python3-venv --yes 
-   	else
-  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.8-venv tmux python3-pip python3-venv --yes 
-   	fi
+				sudo  NEEDRESTART_SUSPEND=1 apt-get install curl gnupg ca-certificates lsb-release --yes 
+				sudo mkdir -p /etc/apt/keyrings
+				curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg  
+				
+				sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+				sudo apt-get update --allow-insecure-repositories
+				sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
+				
+				version=` more /etc/os-release |grep VERSION_ID | cut -d \" -f 2`
+				if  [ "$version" == "24.04" ]; then
+		# Ubuntu 24.04
+					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.12-venv tmux python3-pip python3-venv --yes 
 
-		sudo usermod -aG docker $real_user
+		  	elif [ "$version" == "22.04" ]; then
+		# Ubuntu 22.04
+					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes 
+		  	elif [ "$version" == "20.04" ]; then
+		# Ubuntu 20.04
+					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.9-venv tmux python3-pip python3-venv --yes 
+		   	else
+		  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.8-venv tmux python3-pip python3-venv --yes 
+		   	fi
+
+				sudo usermod -aG docker $real_user
+		
+		elif [ "$os" == "Red" ]; then
+			
+					echo " still to be written 	"
+				cd /
+				sudo mkdir $rootfolder
+				sudo chown $real_user:$real_user $rootfolder
+				sudo chmod 777 $rootfolder
+				mkdir -p /$rootfolder/
+				mkdir -p /$rootfolder/scripts
+				sudo dnf -y install dnf-plugins-core
+				sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+				sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+				sudo systemctl enable --now docker
+				sudo yum install -y git
+				sudo usermod -aG docker $real_user
+				
+		fi 
 		
 		}
 
@@ -132,10 +166,10 @@ base()
 elk()
 	{
 		
-		cd /pensandotools/
-		git clone https://github.com/amd/pensando-elk.git 
+		cd /$rootfolder/
+		git clone $gitlocation
 		
-		cd /pensandotools/pensando-elk
+		cd /$rootfolder/$basefolder
 		clear 
 		`git branch --all | cut -d "/" -f3 > gitversion.txt`
 		echo "choose a branch "
@@ -148,6 +182,7 @@ elk()
 		elkver=`sed "$x,1!d" gitversion.txt`
 		#				   echo $elkver
 		git checkout  $elkver
+		echo $elkver >installedversion.txt
 				
 		cp docker-compose.yml docker-compose.yml.orig
 		sed -i.bak  's/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''false'\''/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''true'\''/' docker-compose.yml
@@ -202,7 +237,7 @@ This is going to take time to install and setup
 					
 					"
 					
-		cd /pensandotools/pensando-elk/
+		cd /$rootfolder/$basefolder/
 		echo $ELK >.env
 		mkdir -p data/es_backups
 		mkdir -p data/pensando_es
@@ -216,9 +251,16 @@ This is going to take time to install and setup
 	
 }
 
+dockerdown()
+{
+			cd /$rootfolder/$basefolder/
+			docker compose down
+			
+}
+
 dockerup()
 {		
-		cd /pensandotools/pensando-elk/
+		cd /$rootfolder/$basefolder/
 		echo "					
 				
 Services setting up please wait
@@ -236,25 +278,139 @@ Services setting up please wait
 
 -- This is a 100 second delay for the services to start before we import the config - Please wait
 					"
+		installedversion=`more installedversion.txt`
 		
-		sleep 100
-		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
-		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_snapshot/my_fs_backup' -d @./elasticsearch/pensando_fs.json
-		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/pensando' -d @./elasticsearch/pensando_slm.json
-		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando' -d @./elasticsearch/pensando_ilm.json
-		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/elastiflow' -d @./elasticsearch/elastiflow_slm.json
-		curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/elastiflow' -d @./elasticsearch/elastiflow_ilm.json
-		echo "					
-Services setting up please wait
-70%
-					"
-							
-		sleep 10
-		pensandodash=`ls -t ./kibana/pen* | head -1`
-		elastiflowdash=`ls -t  ./kibana/kib* | head -1`
-		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
-		curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
+		if [ "$installedversion" == "aoscx_10.13" ]; then 
+				
+				sleep 100
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
 
+				echo "					
+		Services setting up please wait
+		70%
+							"
+									
+				sleep 10
+				pensandodash=`ls -t ./kibana/pen* | head -1`
+				elastiflowdash=`ls -t  ./kibana/kib* | head -1`
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
+				
+				
+		elif [ "$installedversion" == "aoscx_10.13.1000" ]; then 
+				
+				sleep 100
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
+
+				echo "					
+		Services setting up please wait
+		70%
+							"
+									
+				sleep 10
+				pensandodash=`ls -t ./kibana/pen* | head -1`
+				elastiflowdash=`ls -t  ./kibana/kib* | head -1`
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
+				
+		elif [ "$installedversion" == "aoscx_10.14" ]; then 
+				
+				sleep 100
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
+				echo "					
+		Services setting up please wait
+		70%
+							"
+									
+				sleep 10
+				pensandodash=`ls -t ./kibana/pen* | head -1`
+				elastiflowdash=`ls -t  ./kibana/kib* | head -1`
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
+				
+				
+		elif [ "$installedversion" == "aoscx_10.14.0001" ]; then 
+				
+				sleep 100
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_snapshot/my_fs_backup' -d @./elasticsearch/pensando_fs.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/pensando' -d @./elasticsearch/pensando_slm.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando' -d @./elasticsearch/pensando_ilm.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/elastiflow' -d @./elasticsearch/elastiflow_slm.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/elastiflow' -d @./elasticsearch/elastiflow_ilm.json
+				echo "					
+		Services setting up please wait
+		70%
+							"
+									
+				sleep 10
+				pensandodash=`ls -t ./kibana/pen* | head -1`
+				elastiflowdash=`ls -t  ./kibana/kib* | head -1`
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
+				
+		elif [ "$installedversion" == "aoscx_10.15" ]; then 
+				
+				sleep 100
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_snapshot/my_fs_backup' -d @./elasticsearch/pensando_fs.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/pensando' -d @./elasticsearch/pensando_slm.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando' -d @./elasticsearch/pensando_ilm.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/elastiflow' -d @./elasticsearch/elastiflow_slm.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/elastiflow' -d @./elasticsearch/elastiflow_ilm.json
+				echo "					
+		Services setting up please wait
+		70%
+							"
+									
+				sleep 10
+				pensandodash=`ls -t ./kibana/pen* | head -1`
+				elastiflowdash=`ls -t  ./kibana/kib* | head -1`
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
+				
+		elif [ "$installedversion" == "aoscx_10.15.0001" ]; then 
+			
+				sleep 100
+				curl -X DELETE "localhost:9200/_index_template/pensando-fwlog"
+				curl -X DELETE 'http://localhost:9200/_slm/policy/pensando'
+				curl -X DELETE'http://localhost:9200/_ilm/policy/pensando' 
+				curl -X DELETE 'http://localhost:9200/_slm/policy/elastiflow'
+				curl -X DELETE 'http://localhost:9200/_ilm/policy/elastiflow'
+				
+				
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando_empty_delete' -d @./elasticsearch/policy/pensando_empty_delete.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando_allow_create' -d @./elasticsearch/policy/pensando_allow_create.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando_allow_delete' -d @./elasticsearch/policy/pensando_allow_delete.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando_deny_create' -d @./elasticsearch/policy/pensando_deny_create.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/elastiflow_maintenance' -d @./elasticsearch/policy/elastiflow_maintenance.json
+				
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-empty-delete?pretty' -d @./elasticsearch/template/pensando-fwlog-empty-delete.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-allow-create?pretty' -d @./elasticsearch/template/pensando-fwlog-allow-create.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-allow-delete?pretty' -d @./elasticsearch/template/pensando-fwlog-allow-delete.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-deny-create?pretty' -d @./elasticsearch/template/pensando-fwlog-deny-create.json
+				
+				
+				
+
+				echo "					
+		Services setting up please wait
+		70%
+							"
+									
+				sleep 10
+				pensandodash=`ls -t ./kibana/pen* | head -1`
+				elastiflowdash=`ls -t  ./kibana/kib* | head -1`
+				fragdash=ls -t  ./kibana/Frag* | head -1`
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
+				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$fragdash
+				
+			
+
+
+		fi 
+		
 		
 		echo "					
 Services setting up please wait
@@ -371,13 +527,19 @@ Environment=\"NO_PROXY=localhost,127.0.0.1,::1\"
 
 upgrade()
 {
-		cd /pensandotools/pensando-elk/
+		cd /$rootfolder/$basefolder/
 			
 		docker compose down
-		updates
+
+		if [ "$os" == "Ubuntu" ]; then 	
+				updates
+		elif [ "$os" == "Red" ]; then	
+				updatesred
+		fi 
+		
 		echo $ELK >.env
 		
-		cd /pensandotools/pensando-elk
+		cd /$rootfolder/$basefolder/
 		clear 
 		git branch --all | cut -d "/" -f3 > gitversion.txt
 		echo "choose a branch "
@@ -427,7 +589,7 @@ This is going to take time to install and setup
 					
 					"
 					
-		cd /pensandotools/pensando-elk/
+		cd /$rootfolder/$basefolder/
 		echo $ELK >.env
 		
 		
@@ -439,6 +601,9 @@ testcode()
 		echo " 
 		Space for testing
 					"
+
+					dockerupnote
+					
 }
 
 while true ;
