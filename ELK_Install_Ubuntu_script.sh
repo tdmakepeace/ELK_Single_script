@@ -61,9 +61,7 @@ It might appear to have paused, but leave it until the host reboots.
 
 It is recommended to be a static IP configuration.
 
-Press Cntl-C to exit if you need to set static IP.
-
-	"
+Press Cntl-C to exit if you need to set static IP. 	"
 		read -p "Press enter to continue"
 
 
@@ -71,17 +69,14 @@ Press Cntl-C to exit if you need to set static IP.
 
 elknote()
 {
-				## Update all the base image of Ubuntu before we progress. 
+		clear
+		echo " 
+		This script will require some input for the first 2 minutes, and then run unattended for 5-10 minutes to do the ELK setup of the enviroment.
 		
-		echo " This script will require some input for the first 2 minutes, and then run unattended for 5-10 minutes to do the 
-ELK setup of the enviroment.
-
-It might appear to have paused, but leave it until to complete.
-
-	"
+		It might appear to have paused, but leave it until to complete.
+			
+			"
 		read -p "Press enter to continue"
-	
-	
 }
 
 dockerupnote()
@@ -89,7 +84,7 @@ dockerupnote()
 
 		clear
 		echo "					
-					Access the UI - https://$localip:5601'
+					Access the UI - https://$localip:5601
 					
 					If the server is rebooted allow 5 minutes for all the service to come up
 					before you attemp to access the Kibana dashboards. 
@@ -372,9 +367,9 @@ Services setting up please wait
 		elif [ "$installedversion" == "aoscx_10.15.0001" ]; then 
 			
 				sleep 100
-				curl -X DELETE "localhost:9200/_index_template/pensando-fwlog"
+				curl -X DELETE 'http://localhost:9200/localhost:9200/_index_template/pensando-fwlog' 
 				curl -X DELETE 'http://localhost:9200/_slm/policy/pensando'
-				curl -X DELETE'http://localhost:9200/_ilm/policy/pensando' 
+				curl -X DELETE 'http://localhost:9200/_ilm/policy/pensando' 
 				curl -X DELETE 'http://localhost:9200/_slm/policy/elastiflow'
 				curl -X DELETE 'http://localhost:9200/_ilm/policy/elastiflow'
 				
@@ -401,7 +396,7 @@ Services setting up please wait
 				sleep 10
 				pensandodash=`ls -t ./kibana/pen* | head -1`
 				elastiflowdash=`ls -t  ./kibana/kib* | head -1`
-				fragdash=ls -t  ./kibana/Frag* | head -1`
+				fragdash=`ls -t  ./kibana/Frag* | head -1`
 				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
 				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
 				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$fragdash
@@ -734,7 +729,7 @@ This process is designed to update the base OS packages and allow you to select 
 				  clear
 				   while [  $x ==   "c" ] ;
 				    do
-					  	upgrade
+					  	# upgrade
 					  	dockerup
 					  	dockerupnote
 					  	rebootserver
@@ -754,4 +749,4 @@ This process is designed to update the base OS packages and allow you to select 
     	echo "try again"
   	fi
 
-done   
+done
