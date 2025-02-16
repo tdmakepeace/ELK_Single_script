@@ -364,7 +364,7 @@ Services setting up please wait
 				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
 				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
 				
-		elif [ "$installedversion" == "aoscx_10.15.0001" ]; then 
+		elif [ "$installedversion" == "develop" ]; then 
 			
 				sleep 100
 				curl -X DELETE 'http://localhost:9200/localhost:9200/_index_template/pensando-fwlog' 
@@ -396,10 +396,10 @@ Services setting up please wait
 				sleep 10
 				pensandodash=`ls -t ./kibana/pen* | head -1`
 				elastiflowdash=`ls -t  ./kibana/kib* | head -1`
-				fragdash=`ls -t  ./kibana/Frag* | head -1`
+#				fragdash=`ls -t  ./kibana/Frag* | head -1`
 				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
 				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
-				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$fragdash
+#				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$fragdash
 				
 			
 
