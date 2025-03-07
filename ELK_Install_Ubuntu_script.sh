@@ -224,13 +224,6 @@ elk()
 		more docker-compose.yml |egrep -i 'EF_OUTPUT_ELASTICSEARCH_ENABLE|EF_OUTPUT_ELASTICSEARCH_ADDRESSES|EF_ACCOUNT_ID|EF_FLOW_LICENSE_KEY'
 		read -p "Press enter to continue"
 		
-		echo " 
-		
-Go and make a cup of Tea
-This is going to take time to install and setup
-					
-					
-					"
 					
 		cd /$rootfolder/$basefolder/
 		echo $ELK >.env
@@ -243,6 +236,15 @@ This is going to take time to install and setup
 	
 #call next part.
 	# dockerup	
+
+		echo " 
+		
+Go and make a cup of Tea
+This is going to take time to install and setup
+					
+					
+					"
+					
 	
 }
 
@@ -375,15 +377,15 @@ Services setting up please wait
 				
 				
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando_empty_delete' -d @./elasticsearch/policy/pensando_empty_delete.json
-				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando_allow_create' -d @./elasticsearch/policy/pensando_create_allow.json
-				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando_allow_delete' -d @./elasticsearch/policy/pensando_session_end.json
-				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando_deny_create' -d @./elasticsearch/policy/pensando_create_deny.json
-				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/elastiflow_maintenance' -d @./elasticsearch/policy/elastiflow_maintenance.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando_create_allow' -d @./elasticsearch/policy/pensando_create_allow.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando_session_end' -d @./elasticsearch/policy/pensando_session_end.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando_create_deny' -d @./elasticsearch/policy/pensando_create_deny.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/elastiflow' -d @./elasticsearch/policy/elastiflow.json
 				
-				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-empty-delete?pretty' -d @./elasticsearch/template/pensando-fwlog-session-end.json
-				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-allow-create?pretty' -d @./elasticsearch/template/pensando-fwlog-create-allow.json
-				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-allow-delete?pretty' -d @./elasticsearch/template/pensando-fwlog-allow-delete.json
-				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-deny-create?pretty' -d @./elasticsearch/template/pensando-fwlog-create-deny.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-session-end?pretty' -d @./elasticsearch/template/pensando-fwlog-session-end.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-create-allow?pretty' -d @./elasticsearch/template/pensando-fwlog-create-allow.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-empty-delete?pretty' -d @./elasticsearch/template/pensando-fwlog-empty-delete.json
+				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-create-deny?pretty' -d @./elasticsearch/template/pensando-fwlog-create-deny.json
 				
 				
 				
