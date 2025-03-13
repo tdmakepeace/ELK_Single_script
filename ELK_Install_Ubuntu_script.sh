@@ -70,7 +70,7 @@ Press Cntl-C to exit if you need to set static IP. 	"
 elknote()
 {
 		clear
-		echo " 
+		echo "
 		This script will require some input for the first 2 minutes, and then run unattended for 5-10 minutes to do the ELK setup of the enviroment.
 		
 		It might appear to have paused, but leave it until to complete.
@@ -527,7 +527,8 @@ upgrade()
 		cd /$rootfolder/$basefolder/
 			
 		docker compose down
-
+		git pull 
+		
 		if [ "$os" == "Ubuntu" ]; then 	
 				updates
 		elif [ "$os" == "Red" ]; then	
@@ -545,6 +546,12 @@ upgrade()
 		echo " Select the line number
 
 		"
+		
+		
+				echo " Select the line number
+
+		"
+		
 		read x
 		orig=`sed "1,1!d" gitversion.txt|cut -d ' ' -f 2`
 		elkver=`sed "$x,1!d" gitversion.txt`
@@ -553,6 +560,8 @@ upgrade()
 		git checkout  $elkver --force
 		git pull
  		localip=`hostname -I | cut -d " " -f1`
+
+		echo $elkver >installedversion.txt
 		
 		olddocker=`ls -t docker*aos* |head -1`
 		
@@ -585,11 +594,9 @@ This is going to take time to install and setup
 					
 					
 					"
-					
-		cd /$rootfolder/$basefolder/
-		echo $ELK >.env
-		
-		
+				
+
+
 }
 
 
@@ -731,10 +738,10 @@ This process is designed to update the base OS packages and allow you to select 
 				  clear
 				   while [  $x ==   "c" ] ;
 				    do
-					  	# upgrade
+					  	upgrade
 					  	dockerup
 					  	dockerupnote
-					  	rebootserver
+					  	# rebootserver
 					  	x="done"
 				  done
 				  
