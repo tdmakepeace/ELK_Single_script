@@ -121,16 +121,16 @@ base()
 				version=` more /etc/os-release |grep VERSION_ID | cut -d \" -f 2`
 				if  [ "$version" == "24.04" ]; then
 		# Ubuntu 24.04
-					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.12-venv tmux python3-pip python3-venv --yes 
+					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.12-venv tmux python3-pip python3-venv kcat --yes 
 
 		  	elif [ "$version" == "22.04" ]; then
 		# Ubuntu 22.04
-					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv --yes 
+					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv kcat --yes 
 		  	elif [ "$version" == "20.04" ]; then
 		# Ubuntu 20.04
-					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.9-venv tmux python3-pip python3-venv --yes 
+					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.9-venv tmux python3-pip python3-venv kcat --yes 
 		   	else
-		  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.8-venv tmux python3-pip python3-venv --yes 
+		  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.8-venv tmux python3-pip python3-venv kcat --yes 
 		   	fi
 
 				sudo usermod -aG docker $real_user
@@ -146,7 +146,7 @@ base()
 				mkdir -p /$rootfolder/scripts
 				sudo dnf -y install dnf-plugins-core
 				sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
-				sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+				sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin kcat
 				sudo systemctl enable --now docker
 				sudo yum install -y git
 				sudo usermod -aG docker $real_user
