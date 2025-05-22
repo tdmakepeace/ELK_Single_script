@@ -16,18 +16,20 @@
 ###	
 
 ELK="TAG=8.16.1"
-gitlocation="https://github.com/amd/pensando-elk.git"
-basefolder="pensando-elk"
+elkgitlocation="https://github.com/amd/pensando-elk.git"
+elkbasefolder="pensando-elk"
+
 rootfolder="pensandotools"
 
-###
+###  main code area should not be modified.
 	
 rebootserver()
 {
-		echo "rebooting"
+		echo -e "\e[0;31mRebooting the system...\n\e[0m"
 		
 		sleep 5
 		sudo reboot
+		sleep 10
 		break
 }
 
@@ -55,95 +57,138 @@ basenote()
 		## Update all the base image of Ubuntu before we progress. 
 		## then installs all the dependencies and sets up the permissions for Docker
 		clear
-		echo " This script will run unattended for 5-10 minutes to do the 
-base setup of the server enviroment ready for the Elastic stack. 
-It might appear to have paused, but leave it until the host reboots.
+		echo -e "\nThis script will run unattended for 5-10 minutes to do the base setup of the server enviroment ready for any of the AMD Pensando tools.  It might appear to have paused, but leave it until the host reboots.\n
+It is recommended to be a static IP configuration.\n" | fold -w 80 -s
 
-It is recommended to be a static IP configuration.
-
-Press Cntl-C to exit if you need to set static IP. 	"
-		read -p "Press enter to continue"
-
-
-	}
+	echo -e "\e[1;33mPress Ctrl+C to exit if you need to configure a static IP address, then run this script again.\n\e[0m"
+  
+  
+		read -p "Press enter to continue...."
+}
 
 elknote()
 {
-		clear
-		echo "
-		This script will require some input for the first 2 minutes, and then run unattended for 5-10 minutes to do the ELK setup of the enviroment.
-		
-		It might appear to have paused, but leave it until to complete.
-			
-			"
-		read -p "Press enter to continue"
+	echo -e "\nThis workflow requires input to select the desired application version, optionally configure an ElastiFlow license key, and will then run unattended to deploy and configure the ELK Stack components.\n" | fold -w 80 -s
+	echo -e "Please do not interrupt the script during this process, to avoid leaving the application in a partially-deployed state.\n" | fold -w 80 -s
+	read -p "Press enter to continue..."
 }
 
-dockerupnote()
+
+elkdockerupnote()
 {
 
-		clear
-		echo "					
-					Access the UI - https://$localip:5601
-					
-					If the server is rebooted allow 5 minutes for all the service to come up
-					before you attemp to access the Kibana dashboards. 
-					
-					"
-		read -p "Services setup. any key to continue"
+		echo "Access the ELK Stack application in a browser from the following URL: "
+		echo -e "\e[0;31mhttp://$localip:5601\n\e[0m"
+				
+		echo -e "Allow 5 minutes for all the service to come up before you attempting to access the Kibana dashboards. \n" | fold -w 80 -s
+		read -p "Services setup. Press enter to continue..."
 		exit 0	
 }
 
+
+
+
+create_rootfolder()
+{
+	real_user=$(whoami)
+	cd /
+	sudo mkdir $rootfolder
+	sudo chown $real_user:$real_user $rootfolder
+	sudo chmod 777 $rootfolder
+	mkdir -p /$rootfolder/
+	mkdir -p /$rootfolder/scripts
+}
+
+check_rootfolder_permissions()
+{
+	# Get the current user
+    real_user=$(whoami)
+
+	# Check if the rootfolder exists
+	echo "Checking if $rootfoler exists"
+    if [ -d "/$rootfolder" ]; then
+        # Check if the directory is writable by the current user
+        if [ -w "/$rootfolder" ]; then
+            echo "/$rootfolder exists and is writable by $real_user"
+        else
+            echo "/$rootfolder exists but is not writable by $real_user, changing ownership"
+            sudo chown $real_user:$real_user "/$rootfolder"
+            # Verify the change was successful
+            if [ -w "/$rootfolder" ]; then
+                echo "Successfully changed ownership of /$rootfolder to $real_user"
+            else
+                echo "Failed to make /$rootfolder writable by $real_user"
+                return 1
+            fi
+        fi
+    else
+        echo "/$rootfolder does not exist, creating it"
+        create_rootfolder
+    fi
+}
+
+
 base()
-	{
-		real_user=$(whoami)
+{
+	real_user=$(whoami)
 
 
-		os=`more /etc/os-release |grep PRETTY_NAME | cut -d  \" -f2 | cut -d " " -f1`
-		if [ "$os" == "Ubuntu" ]; then 
-				updates
-				cd /
-				sudo mkdir $rootfolder
-				sudo chown $real_user:$real_user $rootfolder
-				sudo chmod 777 $rootfolder
-				mkdir -p /$rootfolder/
-				mkdir -p /$rootfolder/scripts
-				sudo mkdir -p /etc/apt/keyrings
+	os=`more /etc/os-release |grep PRETTY_NAME | cut -d  \" -f2 | cut -d " " -f1`
+	if [ "$os" == "Ubuntu" ]; then 
+			updates
+			check_rootfolder_permissions
 
-				sudo  NEEDRESTART_SUSPEND=1 apt-get install curl gnupg ca-certificates lsb-release --yes 
-				sudo mkdir -p /etc/apt/keyrings
-				curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg  
-				
-				sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-				sudo apt-get update --allow-insecure-repositories
-				sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
-				
-				version=` more /etc/os-release |grep VERSION_ID | cut -d \" -f 2`
-				if  [ "$version" == "24.04" ]; then
-		# Ubuntu 24.04
-					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.12-venv tmux python3-pip python3-venv kcat --yes 
-
-		  	elif [ "$version" == "22.04" ]; then
-		# Ubuntu 22.04
-					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv kcat --yes 
-		  	elif [ "$version" == "20.04" ]; then
-		# Ubuntu 20.04
-					sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.9-venv tmux python3-pip python3-venv kcat --yes 
-		   	else
-		  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.8-venv tmux python3-pip python3-venv kcat --yes 
-		   	fi
-
-				sudo usermod -aG docker $real_user
-		
-		elif [ "$os" == "Red" ]; then
+			sudo mkdir -p /etc/apt/keyrings
+			sudo  NEEDRESTART_SUSPEND=1 apt-get install curl gnupg ca-certificates lsb-release --yes 
+			sudo mkdir -p /etc/apt/keyrings
+			curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg  
 			
-					echo " still to be written 	"
-				cd /
-				sudo mkdir $rootfolder
-				sudo chown $real_user:$real_user $rootfolder
-				sudo chmod 777 $rootfolder
-				mkdir -p /$rootfolder/
-				mkdir -p /$rootfolder/scripts
+			sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+			sudo apt-get update --allow-insecure-repositories
+			sudo NEEDRESTART_SUSPEND=1 apt-get dist-upgrade --yes 
+			
+			version=` more /etc/os-release |grep VERSION_ID | cut -d \" -f 2`
+			if  [ "$version" == "25.04" ]; then
+	# Ubuntu 25.04
+				sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.13-venv tmux python3-pip python3-venv kcat --yes 
+	  	elif [ "$version" == "24.04" ]; then
+	# Ubuntu 24.04
+				sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.12-venv tmux python3-pip python3-venv kcat --yes 
+
+	  	elif [ "$version" == "22.04" ]; then
+	# Ubuntu 22.04
+				sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.11-venv tmux python3-pip python3-venv kcat --yes 
+	  	elif [ "$version" == "20.04" ]; then
+	# Ubuntu 20.04
+				sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.9-venv tmux python3-pip python3-venv kcat --yes 
+	   	else
+	  		sudo NEEDRESTART_SUSPEND=1 apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin python3.8-venv tmux python3-pip python3-venv kcat --yes 
+	   	fi
+
+			sudo usermod -aG docker $real_user
+	
+	elif [ "$os" == "Red" ]; then
+
+			version=` more /etc/os-release |grep VERSION_ID | cut -d \" -f 2`
+			if  [ "$version" == "9.5" ]; then
+			# Redhat 9.5
+	
+				check_rootfolder_permissions
+				sudo dnf -y install dnf-plugins-core
+				sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+				sudo subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
+				sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm -y
+				sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin kcat
+				sudo systemctl enable --now docker
+				sudo yum install -y git
+				sudo usermod -aG docker $real_user
+				sudo dnf install -y python3.12
+				sudo ln -sfn /usr/bin/python3.12 /usr/bin/python3
+				
+
+			else
+			
+				check_rootfolder_permissions
 				sudo dnf -y install dnf-plugins-core
 				sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
 				sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin kcat
@@ -151,141 +196,237 @@ base()
 				sudo yum install -y git
 				sudo usermod -aG docker $real_user
 				
-		fi 
-		
-		}
-
-
-
-
-elk()
-	{
-		
-		cd /$rootfolder/
-		git clone $gitlocation
-		
-		cd /$rootfolder/$basefolder
-		clear 
-		`git branch --all | cut -d "/" -f3 > gitversion.txt`
-		echo "choose a branch "
-		git branch --all | cut -d "/" -f3 |grep -n ''
-
-		echo " Select the line number
-
-		"
-		read x
-		elkver=`sed "$x,1!d" gitversion.txt`
-		#				   echo $elkver
-		git checkout  $elkver
-		echo $elkver >installedversion.txt
-				
-		cp docker-compose.yml docker-compose.yml.orig
-		sed -i.bak  's/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''false'\''/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''true'\''/' docker-compose.yml
-		localip=`hostname -I | cut -d " " -f1`
-
-		sed -i.bak -r "s/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '$localip:9200'/" docker-compose.yml
-		sed -i.bak -r "s/#EF_OUTPUT_ELASTICSEARCH_INDEX_PERIOD: 'daily'/EF_OUTPUT_ELASTICSEARCH_INDEX_PERIOD: 'daily'/" docker-compose.yml
-
-		echo "Do you want to install a Elastiflow licence.
-  	
-  	Yes (y) and No (n) "
-		echo "y or n "
-		read x
-	  
-	  clear
-
-  	if  [ "$x" == "y" ]; then
-				echo "Paste the AccountID:
-				
-		        "
-			  read a
-			echo "Paste the licence key:
-				
-		        "
-			  read b
+				sudo dnf install -y python3.12
+				sudo ln -sfn /usr/bin/python3.12 /usr/bin/python3
 			
+			fi
+					
+	fi 
+	
+}
+
+
+		
+elk()
+{
+	check_rootfolder_permissions
+	cd /$rootfolder/
+	git clone $elkgitlocation
+	
+	cd /$rootfolder/$elkbasefolder
+	clear 
+	`git branch --all | cut -d "/" -f3 > gitversion.txt`
+	echo -e "\e[0;31mEnter a line number to select a branch:\n\e[0m"
+
+	git branch --all | cut -d "/" -f3 |grep -n ''
+
+	read x
+	if [ "$x" == 1 ]; then
+		elkver=`sed "$x,1!d" gitversion.txt | cut -d " " -f2`
+	else 
+		elkver=`sed "$x,1!d" gitversion.txt`	
+	fi
+	
+
+	git checkout  $elkver
+	echo $elkver >installedversion.txt
+			
+	cp docker-compose.yml docker-compose.yml.orig
+	sed -i.bak  's/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''false'\''/EF_OUTPUT_ELASTICSEARCH_ENABLE: '\''true'\''/' docker-compose.yml
+	localip=`hostname -I | cut -d " " -f1`
+
+	sed -i.bak -r "s/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'/EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '$localip:9200'/" docker-compose.yml
+	sed -i.bak -r "s/#EF_OUTPUT_ELASTICSEARCH_INDEX_PERIOD: 'daily'/EF_OUTPUT_ELASTICSEARCH_INDEX_PERIOD: 'daily'/" docker-compose.yml
+
+	echo "Do you want to install a Elastiflow licence.
+	
+	Yes (y) and No (n) "
+	echo "y or n "
+	read x
+  
+  clear
+
+	if  [ "$x" == "y" ]; then
+		echo -e "\e[1;33mEnter the account ID:\n\e[0m"
+		read a
+		echo -e "\e[1;33mEnter the license key:\n\e[0m"
+		read b
 		
 		sed -i.bak -r "s/#EF_ACCOUNT_ID: ''/EF_ACCOUNT_ID: '$a'/" docker-compose.yml
 		sed -i.bak -r "s/#EF_FLOW_LICENSE_KEY: ''/EF_FLOW_LICENSE_KEY: '$b'/" docker-compose.yml
-		
 
-  	else
-    	echo "Continue"
-  	fi
-  			
-	echo " Just to show you the changes we have made to the docker compose files
-	 Was:
-	 EF_OUTPUT_ELASTICSEARCH_ENABLE: 'false'
-	 EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'
-	 
-	 Now:
-	 "
-				
-		more docker-compose.yml |egrep -i 'EF_OUTPUT_ELASTICSEARCH_ENABLE|EF_OUTPUT_ELASTICSEARCH_ADDRESSES|EF_ACCOUNT_ID|EF_FLOW_LICENSE_KEY'
-		read -p "Press enter to continue"
-		
-					
-		cd /$rootfolder/$basefolder/
-		echo $ELK >.env
-		mkdir -p data/es_backups
-		mkdir -p data/pensando_es
-		mkdir -p data/elastiflow
-		chmod -R 777 ./data
-		sudo sysctl -w vm.max_map_count=262144
-		echo vm.max_map_count=262144 | sudo tee -a /etc/sysctl.conf 
+	else
+  	echo "Continue"
+	fi
 	
-#call next part.
-	# dockerup	
+	echo -e "\nJust to show you the changes we have made to the docker compose files \nIt was:\n EF_OUTPUT_ELASTICSEARCH_ENABLE: 'false'\n EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'\n\n Now:\n "
+			
+	more docker-compose.yml |egrep -i 'EF_OUTPUT_ELASTICSEARCH_ENABLE|EF_OUTPUT_ELASTICSEARCH_ADDRESSES|EF_ACCOUNT_ID|EF_FLOW_LICENSE_KEY'
+	read -p "Press enter to continue"
+	
+				
+	cd /$rootfolder/$elkbasefolder/
+	echo $ELK >.env
+	mkdir -p data/es_backups
+	mkdir -p data/pensando_es
+	mkdir -p data/elastiflow
+	chmod -R 777 ./data
+	sudo sysctl -w vm.max_map_count=262144
+	echo vm.max_map_count=262144 | sudo tee -a /etc/sysctl.conf 
 
-		echo " 
-		
-Go and make a cup of Tea
-This is going to take time to install and setup
-					
-					
-					"
+	echo -e "\e[0;31mGo and make a cup of Tea \nThis is going to take time to install and setup  \n\e[0m"
 					
 	
 }
 
-dockerdown()
+elksecurefile()
 {
-			cd /$rootfolder/$basefolder/
+	
+	cd /$rootfolder/$elkbasefolder/
+
+	if grep -q "xpack.security.enabled=false" "docker-compose.yml"; then
+		cp docker-compose.yml docker-compose.yml.presec	
+
+		sed -i '/- cluster.initial_master_nodes=es01/d' docker-compose.yml
+		sed -i '/- node.name=es01/d' docker-compose.yml
+		sed -i.bak "s/- xpack.security.enabled=false/- discovery.type=single-node\n      - xpack.security.enabled=true\n      - ELASTIC_PASSWORD=changeme/" docker-compose.yml
+		sed -i.bak "s/pensando-kibana/pensando-kibana\n    environment:\n      - ELASTICSEARCH_HOSTS=http:\/\/elasticsearch:9200\n      - ELASTICSEARCH_USERNAME=kibana_system\n      - ELASTICSEARCH_PASSWORD=kibana_system_pass\n      - xpack.security.enabled=true/" docker-compose.yml
+		sed -i.bak  "s/pensando-logstash/pensando-logstash\n    environment:\n      - DICT_FILE= \{DICT_FILE\}/" docker-compose.yml
+	else
+	echo -e "\e[0;31mdocker compose with xpack already set up\e[0m\n check the config files"
+	fi
+
+
+	
+}
+
+elksecureup()
+{
+	export elkpass=$(< /dev/urandom tr -dc 'A-Za-z0-9' | head -c11)
+	export kibpass=$(< /dev/urandom tr -dc 'A-Za-z0-9' | head -c11)
+	cd logstash
+	sed -i.bak 's/hosts[[:space:]]*=>[[:space:]]*\[ '\''elasticsearch'\'' \]/hosts    => [ '\''elasticsearch'\'' ]\n    user => '\"'elastic'\"' \n    password => '\"$elkpass\"' /' dss_syslog.conf
+
+	cd ..
+	sed -i.bak 's/changeme/'$elkpass'/' docker-compose.yml
+	sed -i.bak 's/kibana_system_pass/'$kibpass'/' docker-compose.yml
+	sleep 2
+	docker compose up --detach --build
+	echo -e "Waiting 100 seconds for services to start before configuration password...\n" | fold -w 80 -s
+	sleep 20
+	echo -e "80 seconds remaining...\n"
+	sleep 20
+	echo -e "60 seconds remaining...\n"
+	sleep 20
+	echo -e "40 seconds remaining...\n"
+	sleep 20
+	echo -e "20 seconds remaining...\n"
+	sleep 15
+	echo -e "5 seconds remaining...\n"
+	sleep 1
+	echo -e "4 seconds remaining...\n"
+	sleep 1
+	echo -e "3 seconds remaining...\n"
+	sleep 1
+	echo -e "2 seconds remaining...\n"
+	sleep 1
+	echo -e "1 second remaining...\n"
+	sleep 1
+	clear
+	echo -e "Enter the following password into the password reset for Kibana_system :\e[0;31m $kibpass\e[0m"
+	docker exec -it pensando-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-reset-password -i -u kibana_system 
+	curl -u elastic:$elkpass -X POST "http://localhost:9200/_security/user/admin?pretty" -H 'Content-Type: application/json' -d'{  "password" : "Pensando0$",  "roles" : [ "superuser" ],  "full_name" : "ELK Admin",  "email" : "admin@example.com"}'
+	clear
+	echo -e " Default username and password setup is: \n\e[0;31madmin - \"Pensando0$\"\n\e[0m"
+
+}
+
+secureelk()
+{
+	clear
+	localip=`hostname -I | cut -d " " -f1`
+	echo "Do you wish to enable ELK stack security for Kibana.
+This is done as http only - if you wish to use https - refer to the ELK documentation"
+	
+	echo ""
+	echo -e " This will take about 5 minutes"
+	echo ""
+	
+		read -p "[Y]es or [N}o " p
+
+		p=${p,,}
+
+  	if  [[ "$p" == "y" ]]; then
+  		cd /$rootfolder/$elkbasefolder/
+			if grep -q "xpack.security.enabled=true" "docker-compose.yml"; then
+				if grep -q "ELASTIC_PASSWORD=changeme" "docker-compose.yml"; then
+    			docker compose down
+					elksecureup
+				else 
+					echo -e "\e[0;31mdocker compose with xpack already configured \n\e[0m"
+
+				fi 
+			else
+				docker compose down
+				elksecurefile
+				elksecureup
+			fi
+ 
+			elkdockerupnote
+
+ 		elif  [ "$p" == "n" ]; then
+ 			clear
+ 			elkdockerupnote
+		fi
+		 
+}
+
+elkdockerdown()
+{
+			cd /$rootfolder/$elkbasefolder/
 			docker compose down
 			
 }
 
-dockerup()
+elkdockerup()
 {		
-		cd /$rootfolder/$basefolder/
-		echo "					
-				
-Services setting up please wait
-5%
-					"
+		cd /$rootfolder/$elkbasefolder/
+	echo -e "Starting ELK containers\n"
 					
 		sleep 10 
 				
 		docker compose up --detach
 		
-		echo "					
-		
-Services setting up please wait
-15%
+	echo -e "Waiting 100 seconds for services to start before configuration import...\n" | fold -w 80 -s
+	sleep 20
+	echo -e "80 seconds remaining...\n"
+	sleep 20
+	echo -e "60 seconds remaining...\n"
+	sleep 20
+	echo -e "40 seconds remaining...\n"
+	sleep 20
+	echo -e "20 seconds remaining...\n"
+	sleep 15
+	echo -e "5 seconds remaining...\n"
+	sleep 1
+	echo -e "4 seconds remaining...\n"
+	sleep 1
+	echo -e "3 seconds remaining...\n"
+	sleep 1
+	echo -e "2 seconds remaining...\n"
+	sleep 1
+	echo -e "1 second remaining...\n"
+	sleep 1
 
--- This is a 100 second delay for the services to start before we import the config - Please wait
-					"
+	echo -e "Deploying collector configuration...\n"
+	
 		installedversion=`more installedversion.txt`
 		
 		if [ "$installedversion" == "aoscx_10.13" ]; then 
 				
-				sleep 100
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
-
-				echo "					
-		Services setting up please wait
-		70%
-							"
+				echo -e "\e[1;33mImporting the Kibana dashboards and maintainence plans  \n\e[0m"
+					
 									
 				sleep 10
 				pensandodash=`ls -t ./kibana/pen* | head -1`
@@ -296,13 +437,9 @@ Services setting up please wait
 				
 		elif [ "$installedversion" == "aoscx_10.13.1000" ]; then 
 				
-				sleep 100
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
 
-				echo "					
-		Services setting up please wait
-		70%
-							"
+				echo -e "\e[1;33mImporting the Kibana dashboards and maintainence plans  \n\e[0m"
 									
 				sleep 10
 				pensandodash=`ls -t ./kibana/pen* | head -1`
@@ -312,12 +449,8 @@ Services setting up please wait
 				
 		elif [ "$installedversion" == "aoscx_10.14" ]; then 
 				
-				sleep 100
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
-				echo "					
-		Services setting up please wait
-		70%
-							"
+				echo -e "\e[1;33mImporting the Kibana dashboards and maintainence plans  \n\e[0m"
 									
 				sleep 10
 				pensandodash=`ls -t ./kibana/pen* | head -1`
@@ -328,17 +461,13 @@ Services setting up please wait
 				
 		elif [ "$installedversion" == "aoscx_10.14.0001" ]; then 
 				
-				sleep 100
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_snapshot/my_fs_backup' -d @./elasticsearch/pensando_fs.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/pensando' -d @./elasticsearch/pensando_slm.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando' -d @./elasticsearch/pensando_ilm.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/elastiflow' -d @./elasticsearch/elastiflow_slm.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/elastiflow' -d @./elasticsearch/elastiflow_ilm.json
-				echo "					
-		Services setting up please wait
-		70%
-							"
+				echo -e "\e[1;33mImporting the Kibana dashboards and maintainence plans  \n\e[0m"
 									
 				sleep 10
 				pensandodash=`ls -t ./kibana/pen* | head -1`
@@ -348,17 +477,13 @@ Services setting up please wait
 				
 		elif [ "$installedversion" == "aoscx_10.15" ]; then 
 				
-				sleep 100
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog?pretty' -d @./elasticsearch/pensando_fwlog_mapping.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_snapshot/my_fs_backup' -d @./elasticsearch/pensando_fs.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/pensando' -d @./elasticsearch/pensando_slm.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/pensando' -d @./elasticsearch/pensando_ilm.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_slm/policy/elastiflow' -d @./elasticsearch/elastiflow_slm.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_ilm/policy/elastiflow' -d @./elasticsearch/elastiflow_ilm.json
-				echo "					
-		Services setting up please wait
-		70%
-							"
+				echo -e "\e[1;33mImporting the Kibana dashboards and maintainence plans  \n\e[0m"
 									
 				sleep 10
 				pensandodash=`ls -t ./kibana/pen* | head -1`
@@ -368,7 +493,6 @@ Services setting up please wait
 				
 		elif [ "$installedversion" == "main" ]; then 
 			
-				sleep 100
 				curl -X DELETE 'http://localhost:9200/localhost:9200/_index_template/pensando-fwlog' 
 				curl -X DELETE 'http://localhost:9200/_slm/policy/pensando'
 				curl -X DELETE 'http://localhost:9200/_ilm/policy/pensando' 
@@ -387,26 +511,17 @@ Services setting up please wait
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-empty-delete?pretty' -d @./elasticsearch/template/pensando-fwlog-empty-delete.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-create-deny?pretty' -d @./elasticsearch/template/pensando-fwlog-create-deny.json
 				
+				echo -e "\e[1;33mImporting the Kibana dashboards and maintainence plans  \n\e[0m"
 				
-				
-
-				echo "					
-		Services setting up please wait
-		70%
-							"
-									
 				sleep 10
 				pensandodash=`ls -t ./kibana/pen* | head -1`
 				elastiflowdash=`ls -t  ./kibana/kib* | head -1`
-#				fragdash=`ls -t  ./kibana/Frag* | head -1`
 				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
 				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
-#				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$fragdash
 				
 			
 		elif [ "$installedversion" == "develop" ]; then 
 			
-				sleep 100
 				curl -X DELETE 'http://localhost:9200/localhost:9200/_index_template/pensando-fwlog' 
 				curl -X DELETE 'http://localhost:9200/_slm/policy/pensando'
 				curl -X DELETE 'http://localhost:9200/_ilm/policy/pensando' 
@@ -425,79 +540,53 @@ Services setting up please wait
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-empty-delete?pretty' -d @./elasticsearch/template/pensando-fwlog-empty-delete.json
 				curl -XPUT -H'Content-Type: application/json' 'http://localhost:9200/_index_template/pensando-fwlog-create-deny?pretty' -d @./elasticsearch/template/pensando-fwlog-create-deny.json
 				
-				
-				
+				echo -e "\e[1;33mImporting the Kibana dashboards and maintainence plans  \n\e[0m"									
 
-				echo "					
-		Services setting up please wait
-		70%
-							"
-									
 				sleep 10
 				pensandodash=`ls -t ./kibana/pen* | head -1`
 				elastiflowdash=`ls -t  ./kibana/kib* | head -1`
-#				fragdash=`ls -t  ./kibana/Frag* | head -1`
 				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$pensandodash
 				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$elastiflowdash
-#				curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" -H "securitytenant: global" --form file=@$fragdash
-				
-			
-
-
 
 		fi 
 		
+		echo -e "\e[1;33mFinishing import  \n\e[0m"									
 		
-		echo "					
-Services setting up please wait
-80%
-					"
-
 		sleep 20	
-
-
+		
 }
 
 proxy()
-	{
-		echo " Do you require proxy config for:
-			Authenticated (a) or No Auth (n)
-			"
-		read p
-		clear
+{
+	echo -e "\nSelect the type of proxy server:\n" | fold -w 80 -s
+	read -p "[A]uthenticated, [N]on-authenticated, or anything else to return to main menu: " p
 
-  	if  [ "$p" == "a" ]; then
-  	 	echo " Paste your proxy configuration address.
+	p=${p,,}
+
+  	if  [[ "$p" == "a" ]]; then
+  	 	echo -e "Enter the proxy server IPv4 address or fully-qualified domain name.
  
- example: 
-yourproxyaddress.co.uk
-or 
-a.b.c.d 
+Example: 
 
-		"
+192.168.0.250 
+or
+yourproxyaddress.co.uk\n" | fold -w 80 -s
 		read url
 		
-		clear 
-		echo " Port number for Proxy 
-		"
-		read port
-		clear 
-		echo " Username for Proxy 
-		"
-		read user
-		clear 
-		echo " Password for Proxy 
-		"
-		read pass
+		read -p "Proxy server listening port: " port
+		read -p "Proxy server username: " user
+		read -p "Proxy server password: " pass
 		
+		### Needed for NO_PROXY environment variable
+		noproxylocalip=`hostname -I | cut -d " " -f1`
+
 		sudo rm -f -- /etc/apt/apt.conf
 		sudo touch /etc/apt/apt.conf
 		sudo chmod 777 /etc/apt/apt.conf
 		echo "Acquire::http::Proxy \"http://$user:$pass@$url:$port\";" >>  /etc/apt/apt.conf
-#read -p "test"
 		
 		git config --global http.proxy http://$user:$pass@p$url:$port
-#read -p "test"
+
 		### docker
 		sudo mkdir -p /etc/systemd/system/docker.service.d
 		sudo rm -f -- /etc/systemd/system/docker.service.d/proxy.conf
@@ -506,37 +595,41 @@ a.b.c.d
 		echo "[Service]
 		EnvironmentFile=/etc/system/default/docker
 " >> /etc/systemd/system/docker.service.d/proxy.conf
-#read -p "test"
 		sudo mkdir -p /etc/system/default/
 		sudo chmod 777 /etc/system/default/
 		sudo rm -f -- /etc/system/default/docker
 		sudo touch /etc/system/default/docker
 		sudo chmod 777 /etc/system/default/docker
-		echo "http_proxy='http%3A%2F%2F$user%3A$pass%40$url%3A$port%2F'" >/etc/system/default/docker
-#read -p "test"
+		echo "HTTP_PROXY='http%3A%2F%2F$user%3A$pass%40$url%3A$port%2F'
+NO_PROXY=localhost,127.0.0.1,$noproxylocalip,::1
+" >/etc/system/default/docker
+
 #  		sudo systemctl daemon-reload
 #  		sudo systemctl restart docker.service
+
+		echo -e "Proxy server configuration complete, returning to main menu...\n"
 	
 	elif  [ "$p" == "n" ]; then
-	 	echo " Paste your proxy configuration address.
+  	 	echo -e "Enter the proxy server IPv4 address or fully-qualified domain name.
+ 
+Example: 
 
- example: 
-yourproxyaddress.co.uk
-or 
-a.b.c.d 
+192.168.0.250 
+or
+yourproxyaddress.co.uk\n" | fold -w 80 -s
 
-		"
 		read url
 		
-		clear 
-		echo " Port number for Proxy 
-		"
-		read port  		
+		read -p "Proxy server listening port: " port
 		
+		### cURL
+		touch ~/.curlrc
+		echo "proxy = $url:$port" >> ~/.curlrc
+
 		sudo rm -f -- /etc/apt/apt.conf
 		sudo touch /etc/apt/apt.conf
 		sudo chmod 777 /etc/apt/apt.conf
-		echo "Acquire::http::Proxy \"http://$url:$port\";" >>  /etc/apt/apt.conf
+		echo "Acquire::http::Proxy \"http://$url:$port\";" >> /etc/apt/apt.conf
 		git config --global http.proxy http://$url:$port
 
 		### docker
@@ -546,26 +639,27 @@ a.b.c.d
 		sudo chmod 777 /etc/systemd/system/docker.service.d/proxy.conf
 		echo "[Service]
 Environment=\"HTTP_PROXY=http://$url:$port\"
-Environment=\"HTTPS_PROXY=https://$url:$port\"
-Environment=\"NO_PROXY=localhost,127.0.0.1,::1\"
+Environment=\"HTTPS_PROXY=http://$url:$port\"
+Environment=\"NO_PROXY=localhost,127.0.0.1,$noproxylocalip,::1\"
 " >> /etc/systemd/system/docker.service.d/proxy.conf
 #  		sudo systemctl daemon-reload
 #  		sudo systemctl restart docker.service
-			
-			
-		else 
-		 	echo "try again"
-		
-		fi
+
+		echo -e "Proxy server configuration complete, returning to main menu...\n"
+
+	else 
+		echo "Returning to main menu..."
+	fi
 		
 		
 }
 
-upgrade()
+elkupgrade()
 {
-		cd /$rootfolder/$basefolder/
+		cd /$rootfolder/$elkbasefolder/
 			
-		docker compose down
+		elkdockerdown
+		
 		git pull 
 		
 		if [ "$os" == "Ubuntu" ]; then 	
@@ -576,25 +670,16 @@ upgrade()
 		
 		echo $ELK >.env
 		
-		cd /$rootfolder/$basefolder/
+		cd /$rootfolder/$elkbasefolder/
 		clear 
 		git branch --all | cut -d "/" -f3 > gitversion.txt
-		echo "choose a branch "
+		echo -e "Enter a line number to select a branch:\n"
 		git branch --all | cut -d "/" -f3 |grep -n ''
 
-		echo " Select the line number
-
-		"
-		
-		
-				echo " Select the line number
-
-		"
-		
 		read x
 		orig=`sed "1,1!d" gitversion.txt|cut -d ' ' -f 2`
 		elkver=`sed "$x,1!d" gitversion.txt`
-		#				   echo $elkver
+
 		sudo cp docker-compose.yml docker-compose.yml.$orig
 		git checkout  $elkver --force
 		git pull
@@ -612,30 +697,23 @@ upgrade()
 		sed -i.bak -r "s/#EF_ACCOUNT_ID: ''/EF_ACCOUNT_ID: $EFaccount/" docker-compose.yml
 		sed -i.bak -r "s/#EF_FLOW_LICENSE_KEY: ''/EF_FLOW_LICENSE_KEY: $EFLice/" docker-compose.yml
 		
-		echo " Just to show you the changes we have made to the docker compose files
-		Was:
+	echo -e "The following changes have been made to the docker-compose.yml file:
+
+Before:
 		EF_OUTPUT_ELASTICSEARCH_ENABLE: 'false'
 		EF_OUTPUT_ELASTICSEARCH_ADDRESSES: 'CHANGEME:9200'
 
-		Now:
+After:
 		EF_OUTPUT_ELASTICSEARCH_ENABLE: 'true'
 		EF_OUTPUT_ELASTICSEARCH_ADDRESSES: '<YourIP>:9200'
 
-		Live:
+		Running version:
 		"
 				
 		more docker-compose.yml |egrep -i 'EF_OUTPUT_ELASTICSEARCH_ENABLE|EF_OUTPUT_ELASTICSEARCH_ADDRESSES|EF_ACCOUNT_ID|EF_FLOW_LICENSE_KEY'
 		read -p "Press enter to continue"
 		
-		echo " Go and make a cup of Tea
-This is going to take time to install and setup
-					
-					
-					
-					"
-				
-
-
+	echo -e "\e[0;31mGo and make a cup of Tea \nThis is going to take time to install and setup  \n\e[0m"
 }
 
 
@@ -644,157 +722,116 @@ testcode()
 		echo " 
 		Space for testing
 					"
-
-					dockerupnote
-					
+		#elksecurefile			
+		secureelk 
+		
 }
 
 while true ;
 do
-	clear
-  echo "press cntl-c  or x to exit at any time.
-  
-  
-  
-  "
-  echo "
-This following script will setup Elastic and install the CX10k Visualization project on a clean install of Ubuntu with a static IP.
+	echo -e "\e[0;31mPress Ctrl+C to exit at any time. \n\e[0m"
 
-It will update the host to setup all dependencies and then install Elastic.
-It is all scripted, you just need to run option B then E.
+  echo -e "\n\e[1;33mThis following script will setup enviroment for Elastic \n The ELK stack is for CX10k Visualization. \n\e[0m
+\e[0;31m The base install should be a clean install of Ubuntu with a static IP.\n\e[0m
 
-From the host you wish to install the project on run the following steps:
+Workflows provided by this script will: 
 
-1. Select 'B' for the base install.
-2. The host will reboot, run the script again from the local directory on the host.
-3. Select 'E' for the ELK install.
+- Prepare the base system deployment by ensuring that the operating system is up to date and that \n  all prerequisites are installed
+- Deploy and configure the ELK Stack components using Docker container instances and provided \n  configuration files 
+- Enable username and password on ELK
+- Update deployed ELK Stack components to the latest release
 
+If this is your first time running this script on this system, select [B] to start the base system preparation workflow, which will end with a system reboot; once the system is up and running again, execute this script a second time from the local directory to continue with the deployment process.
 
-  	Setup options Hosts (B) and Deploy ELK (E) and Update ELK (U) 
+NOTE: If a proxy server is required for this system to connect to the internet, select [P] to run the proxy server configuration workflow prior to starting base system preparation. \e[1;33mCurrently Ubuntu only and RHEL 9.5 \n\e[0m
 
-  	If you need to configure a Proxy select (P)
-  		
-  		
-  	"
-	echo "B or E or U or P"
-	read x
+Once the base system preparation and reboot have been completed: \nselect [E] to run the ELK Stack deployment workflow.\nselect [U] to run and ELK Stack upgrade workflow.\nselect [S] to setup username and password management for ELK\n
+
+If the ELK Stack is already deployed and needs to be updated, select [U] to run the update workflow.\n" | fold -w 120 -s
+	
+	read -p "[B]ase system preparation, [E]LK Stack deployment, [U]pdate ELK, 
+[S]ecure - Add username and password, [P]roxy configuration, or e[X]it: " x
+
   x=${x,,}
   
   clear
 
-  	if  [ $x == "b" ]; then
-				echo "
-This should be a one off process do not repeat unless you have cancelled it for some reason.
-	
-		        "
-				  echo "cntl-c  or x to exit"
-				  echo ""    
-				  echo "Enter 'C' to continue :"
-				  read x
-				    x=${x,,}
-					  clear
-				   while [ $x ==  "c" ] ;
-				    do
-				    	basenote
-					  	base 
-					  	rebootserver
-					  	x="done"
-				  done
-  		
-	  elif [  $x == "e" ]; then
-	  		clear
-  			echo "press cntl-c  or x to exit at any time.
-  
-  
-  
-  			"
-    
-				echo "
-This is a one off process do not repeat, as it will default the setting in the ELK stack.
-	
-		        "
-				  echo "Enter 'C' to continue :"
-				  read x
-				  x=${x,,}
+	if  [ $x == "b" ]; then
+		echo -e "\nPress Ctrl+C to exit at any time.\n"
+		echo -e "This workflow should only be run once; do not run it again unless you have previously cancelled it before completion.\n" | fold -w 80 -s
+		read -p "Enter 'C' to continue: " x
+		
+		x=${x,,}
+		clear
+		while [ $x ==  "c" ] ;
+		do
+	    	basenote
+		  	base 
+		  	rebootserver
+		  	x="done"
+	  done
 
- 					
- 					  clear
-				   while [  $x ==  "c" ] ;
-				    do
-				    	elknote
-					  	elk 
-					  	dockerup
-					  	dockerupnote
-					  	x="done"
-					  exit 0
-				  done
-				  
-				    
-			elif [  $x == "P" ]; then
-					  		clear
-  			echo "press cntl-c  or x to exit at any time.
+	elif [  $x == "e" ]; then
+		echo -e "\nPress Ctrl+C to exit at any time.\n"
+		echo -e "This workflow should only be run once; running it additional times	will result in restoring the ELK Stack to default settings and removal of all stored data.\n" | fold -w 80 -s
+		read -p "Enter 'C' to continue: " x
+		x=${x,,}
+		while [[ "$x" ==  "c" ]] ;
+		do
+			elknote
+			elk 
+			elkdockerup
+			secureelk
+			x="done"
+			exit 0
+		done
   
-  
-  
-  			"
-    
-    
-				echo "
-This is a one off process do not repeat.
-	
-		        "
-  
-				  echo "Enter 'C' to continue :"
-				  read x
-				  x=${x,,}
+	elif [[ "$x" == "p" ]]; then
+		echo -e "\nPress Ctrl+C to exit at any time.\n"
+		echo -e "This workflow should normally only be run once; it should only	need to be run again if the ELK Stack components need to be updated or redeployed and the proxy server configuration has changed since the original deployment.\n" | fold -w 80 -s
+		read -p "Enter 'C' to continue: " x
+		x=${x,,}
 
-					  clear
-				   while [  $x ==   "c" ] ;
-				    do
-					  	proxy 
-					  	x="done"
-				  done
+			##clear
+		while [  "$x" ==   "c" ] ;
+		do
+			proxy 
+			x="done"
+		done
+				
+
+	elif [[ "$x" ==  "u" ]]; then
+		##clear
+		echo -e "\nPress Ctrl+C to exit at any time.\n"
+		echo -e "This workflow updates base system software packages and allows selection of an updated version of the ELK Stack environment from the GitHub repository.\n" | fold -w 80 -s
+		read -p "Enter 'C' to continue: " x
+		x=${x,,}
+
+		while [  "$x" ==   "c" ] ;
+		do
+			elkupgrade
+			elkdockerup
+			elkdockerupnote
+			#rebootserver
+			x="done"
+		done
+
+							
+	elif [  "$x" ==  "s" ]; then
+		secureelk
+
+							
+	elif [  "$x" ==  "t" ]; then
+		testcode
 				  
 
-			elif [  $x ==  "u" ]; then
-					  		clear
-  			echo "press cntl-c  or x to exit at any time.
-  
-  
-  
-  			"
-    
-    
-				echo "
-This process is designed to update the base OS packages and allow you to select a upgrade on the ELK enviroment.
-	
-		        "
- 
-				  echo "Enter 'C' to continue :"
-				  read x
-				  x=${x,,}
-
-				  clear
-				   while [  $x ==   "c" ] ;
-				    do
-					  	upgrade
-					  	dockerup
-					  	dockerupnote
-					  	# rebootserver
-					  	x="done"
-				  done
-				  
-
-			elif [  $x ==  "t" ]; then
-					testcode
-				  
-
-	  elif [  $x ==  "x" ]; then
-				break
+	elif [ "$x" ==  "x" ]; then
+		echo -e "\nExiting...\n"
+		exit 0
 
 
-  	else
-    	echo "try again"
-  	fi
+	else
+		echo -e "\nInvalid option, try again...\n"
+	fi
 
 done
