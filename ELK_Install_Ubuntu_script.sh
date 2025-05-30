@@ -305,6 +305,7 @@ elksecureup()
 	export elkpass=$(< /dev/urandom tr -dc 'A-Za-z0-9' | head -c11)
 	export kibpass=$(< /dev/urandom tr -dc 'A-Za-z0-9' | head -c11)
 	cd logstash
+	cp dss_syslog.conf dss_syslog.conf.orig
 	sed -i.bak 's/hosts[[:space:]]*=>[[:space:]]*\[ '\''elasticsearch'\'' \]/hosts    => [ '\''elasticsearch'\'' ]\n    user => '\"'elastic'\"' \n    password => '\"$elkpass\"' /' dss_syslog.conf
 
 	cd ..
@@ -749,8 +750,8 @@ Once the base system preparation and reboot have been completed: \nselect [E] to
 
 If the ELK Stack is already deployed and needs to be updated, select [U] to run the update workflow.\n" | fold -w 120 -s
 	
-	read -p "[B]ase system preparation, [E]LK Stack deployment, [U]pdate ELK, 
-[S]ecure - Add username and password, [P]roxy configuration, or e[X]it: " x
+	read -p "[B]ase system preparation, [E]LK Stack deployment, [U]pdate ELK, [S]ecure - Add username and password,
+ [P]roxy configuration, or e[X]it: " x
 
   x=${x,,}
   
@@ -819,8 +820,7 @@ If the ELK Stack is already deployed and needs to be updated, select [U] to run 
 							
 	elif [  "$x" ==  "s" ]; then
 		secureelk
-
-							
+									
 	elif [  "$x" ==  "t" ]; then
 		testcode
 				  
