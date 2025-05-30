@@ -10,7 +10,7 @@
 ### The script should be run as the first user create as part of the install, and uses SUDO for the deployment process.
 
 
-### wget -O ELK_Install_Ubuntu_script.sh  https://raw.githubusercontent.com/tdmakepeace/ELK_Single_script/refs/heads/main/ELK_Install_Ubuntu_script.sh && chmod +x ELK_Install_Ubuntu_script.sh  &&  ./ELK_Install_Ubuntu_script.sh
+### wget -O ELK_Install_script.sh  https://raw.githubusercontent.com/tdmakepeace/ELK_Single_script/refs/heads/main/ELK_Install_script.sh && chmod +x ELK_Install_script.sh  &&  ./ELK_Install_script.sh 
 
 
 ###	
