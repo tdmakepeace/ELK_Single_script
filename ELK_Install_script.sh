@@ -291,7 +291,7 @@ elksecurefile()
 		sed -i '/- node.name=es01/d' docker-compose.yml
 		sed -i.bak "s/- xpack.security.enabled=false/- discovery.type=single-node\n      - xpack.security.enabled=true\n      - ELASTIC_PASSWORD=changeme/" docker-compose.yml
 		sed -i.bak "s/pensando-kibana/pensando-kibana\n    environment:\n      - ELASTICSEARCH_HOSTS=http:\/\/elasticsearch:9200\n      - ELASTICSEARCH_USERNAME=kibana_system\n      - ELASTICSEARCH_PASSWORD=kibana_system_pass\n      - xpack.security.enabled=true/" docker-compose.yml
-		sed -i.bak  "s/pensando-logstash/pensando-logstash\n    environment:\n      - DICT_FILE= \{DICT_FILE\}/" docker-compose.yml
+		sed -i.bak  "s/pensando-logstash\n    environment:\n/pensando-logstash\n    environment:\n      - DICT_FILE= \{DICT_FILE\}/" docker-compose.yml
 	else
 	echo -e "\e[0;31mdocker compose with xpack already set up\e[0m\n check the config files"
 	fi
