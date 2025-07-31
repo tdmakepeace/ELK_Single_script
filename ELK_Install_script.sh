@@ -170,7 +170,7 @@ base()
 	elif [ "$os" == "Red" ]; then
 
 			version=` more /etc/os-release |grep VERSION_ID | cut -d \" -f 2`
-			if  [ "$version" == "9.5" ]; then
+			if  [ "$version" == "9.5" ] || [ "$version" == "9.6" ] ; then
 			# Redhat 9.5
 	
 				check_rootfolder_permissions
@@ -195,7 +195,6 @@ base()
 				sudo systemctl enable --now docker
 				sudo yum install -y git
 				sudo usermod -aG docker $real_user
-				
 				sudo dnf install -y python3.12
 				sudo ln -sfn /usr/bin/python3.12 /usr/bin/python3
 			
